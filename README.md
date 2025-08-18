@@ -5,7 +5,7 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 ### Tech Stack
 - Next.js App Router (15) + React 19
 - Tailwind CSS v4
-- Local development: no backend yet (Supabase planned). Data is persisted in `localStorage` for the MVP.
+- Local development: Supabase backend ready (schema, indexes, RLS); app still uses `localStorage` until integration is completed.
 
 ### Project Structure (high level)
 - `app/layout.js` – root layout with no sidebar
@@ -77,4 +77,11 @@ npm run dev
 - Full knockout bracket generation (8–128) with seeding/byes
 - Live page polling or Supabase Realtime
 - Migrate localStorage to Supabase tables with RLS and multi-tenant `space_id`
+
+### Supabase Status & Docs
+- See `docs/Status Update & Next Steps - 2025-08-18.md` for the latest backend status and immediate next steps.
+- Supabase implementation details and roadmap:
+  - `docs/SUPABASE_IMPLEMENTATION.md`
+  - `docs/SUPABASE_ROADMAP.md`
+  - `docs/PROGRESS - 2025-08-18.md` (daily progress log, challenges, and changes)
 

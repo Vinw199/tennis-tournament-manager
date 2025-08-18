@@ -1,0 +1,31 @@
+﻿Supabase Implementation Plan
+Document Version: 1.1
+Last Updated: August 12, 2025
+1. Setup & Local Development
+* Supabase CLI: Use the Supabase CLI for local development (supabase start). This ensures a consistent and reproducible environment.
+* Environment Variables: Store all necessary keys in a .env.local file:
+   * NEXT_PUBLIC_SUPABASE_URL
+   * NEXT_PUBLIC_SUPABASE_ANON_KEY
+   * SUPABASE_SERVICE_ROLE_KEY (for server-side operations only)
+   * NEXT_PUBLIC_SPACE_ID (for the MVP, this will be a hardcoded ID of the single, default space)
+* Database Seeding: Create a supabase/seed.sql file. This file should contain the necessary SQL commands to create the default "Jorhat Tennis Club Socials" space and a few dummy players. This will accelerate testing and ensure a consistent starting point for local development.
+2. Architecture & Data Model
+* Multi-Tenancy First: The application must be built on a multi-tenant architecture. All user-generated data (players, tournaments, etc.) will have a space_id column, and every database query must be filtered by this ID.
+* Row-Level Security (RLS): RLS is mandatory for all tables containing user data. Policies will be based on a space_members table, ensuring a user can only access data belonging to a space they are a member of.
+* Database Migrations: All schema changes must be managed through SQL migration files stored in the supabase/migrations directory and checked into version control. Do not make schema changes through the Supabase UI.
+3. Authentication & Route Protection
+* Authentication: Use Supabase Auth for email/password authentication.
+* Route Protection: All admin routes must be protected. In a server-side layout file, check for an active user session. If no session exists, redirect the user to the login page.
+4. Data Flow & State Management
+* Server Components for Reads: Use Next.js Server Components with a server-side Supabase client for the majority of data fetching (e.g., loading tournament details, player rosters). This is more performant and secure.
+* Client Components for Interactivity: Use Client Components with a browser-side Supabase client for interactive elements (e.g., score entry modals). For the MVP, live updates will be handled by a manual page refresh.
+5. Key Implementations
+* Tournament Wizard Drafts: To prevent data loss, the state of the multi-step tournament creation wizard will be persisted in a wizard_drafts table in Supabase, not in localStorage. On every change, upsert the draft; on successful launch, delete the draft.
+* Transactional Writes (RPCs): For complex operations that involve multiple database writes (e.g., "Launch Tournament," which creates entries, groups, and matches), use a Supabase Database Function (RPC). This ensures all steps are completed in a single, atomic transaction, which is safer and more robust than multiple client-side calls.
+* Storage for Avatars: Use Supabase Storage for player profile pictures. Create a bucket with public read access and RLS policies that only allow authenticated space members to upload or update images.
+* Tournament Status Flow: Enforce the tournament lifecycle (planning -> active -> completed) using the status column in the tournaments table. Use RLS or database triggers to lock records (e.g., prevent score edits) once a tournament is marked as completed.
+6. Advanced Considerations & Edge Cases
+* Idempotent RPCs: Ensure that all database functions (RPCs) are idempotent. This means that if a function is accidentally called twice with the same input due to a network error, it will not create duplicate data.
+* Server-Side Data Validation: All data submitted from the client must be validated on the server (ideally within an RPC) before being inserted into the database. This prevents malformed data (e.g., negative scores) and ensures data integrity.
+* Pagination: For long lists like the "Club Roster" or "Tournament Archive," implement pagination from the start. Fetching and displaying data in chunks (e.g., 20 items per page) will ensure the application remains fast as the amount of data grows.
+* Backup Strategy: While Supabase is reliable, a manual backup strategy should be in place for the MVP. Use the Supabase CLI to create a data backup before performing any significant schema migrations on the production database.

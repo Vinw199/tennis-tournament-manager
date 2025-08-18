@@ -7,10 +7,12 @@ import Stepper from "../../../../components/ui/Stepper";
 import Modal from "../../../../components/ui/Modal";
 import { useRouter } from "next/navigation";
 import { saveTournament } from "../../../../lib/localStore";
+import { getWizardDraft, setWizardDraft, clearWizardDraft } from "../../../../lib/wizardDraft";
 import {
   generateBalancedDoublesEntries,
   snakeSeedEntriesIntoGroups,
   generateRoundRobinMatchesForGroup,
+  generateBalancedDoublesEntriesFromPools,
 } from "../../../../lib/tournament";
 
 const DEFAULT_GROUPS = 2;
@@ -39,13 +41,43 @@ export default function NewTournamentWizard() {
 
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(new Set());
   const [numberOfGroups, setNumberOfGroups] = useState(DEFAULT_GROUPS);
+  const [pairsSeed, setPairsSeed] = useState(0);
+  const [halfByPlayerId, setHalfByPlayerId] = useState(null); // { [playerId]: 'top'|'bottom' }
 
   // Derived data for steps 3
+  // Initialize recommended halves when entering step 3 or selection changes
+  const selectedPlayers = useMemo(
+    () => roster.filter((p) => selectedPlayerIds.has(p.id)).sort((a, b) => (a.skillRank ?? a.default_skill_rank) - (b.skillRank ?? b.default_skill_rank)),
+    [roster, selectedPlayerIds]
+  );
+
+  const recommendedHalves = useMemo(() => {
+    const mid = Math.ceil(selectedPlayers.length / 2);
+    const topHalf = selectedPlayers.slice(0, mid);
+    const bottomHalf = selectedPlayers.slice(mid);
+    return { topHalf, bottomHalf };
+  }, [selectedPlayers]);
+
+  const { topHalf, bottomHalf } = useMemo(() => {
+    if (!halfByPlayerId) return recommendedHalves;
+    const topHalf = [];
+    const bottomHalf = [];
+    for (const p of selectedPlayers) {
+      const half = halfByPlayerId[p.id];
+      if (half === 'bottom') bottomHalf.push(p);
+      else topHalf.push(p);
+    }
+    return { topHalf, bottomHalf };
+  }, [halfByPlayerId, recommendedHalves, selectedPlayers]);
+
+  const isBalanced = Math.abs(topHalf.length - bottomHalf.length) <= 1;
+
   const generatedEntries = useMemo(() => {
-    const selectedPlayers = roster.filter((p) => selectedPlayerIds.has(p.id));
-    if (selectedPlayers.length < 2) return [];
-    return generateBalancedDoublesEntries({ players: selectedPlayers });
-  }, [roster, selectedPlayerIds]);
+    if (topHalf.length < 1 || bottomHalf.length < 1) return [];
+    // Include pairsSeed to reshuffle pairs on demand
+    void pairsSeed;
+    return generateBalancedDoublesEntriesFromPools({ topHalf, bottomHalf });
+  }, [topHalf, bottomHalf, pairsSeed]);
 
   const groups = useMemo(() => {
     if (!generatedEntries.length) return [];
@@ -60,7 +92,7 @@ export default function NewTournamentWizard() {
   const steps = [
     "Details",
     "Players",
-    "Entries & Groups",
+    "Pools, Entries & Groups",
     "Review",
   ];
 
@@ -68,8 +100,7 @@ export default function NewTournamentWizard() {
   const canGoToStep2 = !nameError;
 
   function regeneratePairs() {
-    // Trigger recompute by toggling selection set reference
-    setSelectedPlayerIds(new Set(selectedPlayerIds));
+    setPairsSeed((s) => s + 1);
   }
 
   function launchTournament() {
@@ -96,8 +127,20 @@ export default function NewTournamentWizard() {
       ),
     };
     saveTournament(payload);
+    clearWizardDraft();
     router.push(`/t/${id}/manage`);
   }
+
+  // Draft autosave
+  const draft = {
+    step,
+    details,
+    selectedPlayerIds: Array.from(selectedPlayerIds),
+    numberOfGroups,
+    halfByPlayerId,
+  };
+  // Lightweight autosave on render
+  setWizardDraft(draft);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -237,12 +280,63 @@ export default function NewTournamentWizard() {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <div className="font-semibold">Step 3: Entries & Groups</div>
+            <div className="font-semibold">Step 3: Pools, Entries & Groups</div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex items-center justify-between">
+            {/* Pools editor */}
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-semibold">Top/Bottom Pools</div>
+                <div className={"text-xs font-medium " + (isBalanced ? "text-green-700" : "text-red-600")}>{isBalanced ? "Balanced" : "Unbalanced"}</div>
+              </div>
+              {!halfByPlayerId && (
+                <div className="mb-2 text-xs text-foreground/60">Using recommended split by rank. You can adjust below.</div>
+              )}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-md border border-black/10">
+                  <div className="border-b bg-black/5 px-4 py-2 text-sm font-semibold flex items-center justify-between">
+                    <span>Top Pool ({topHalf.length})</span>
+                    <Button
+                      aria-label="Reset pools to recommended"
+                      title="Restore recommended split by rank"
+                      variant="secondary"
+                      onClick={() => setHalfByPlayerId(Object.fromEntries(recommendedHalves.topHalf.map(p => [p.id,'top']).concat(recommendedHalves.bottomHalf.map(p => [p.id,'bottom']))))}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                  <ul className="px-4 py-3 text-sm">
+                    {topHalf.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between py-1">
+                        <span>#{p.skillRank ?? p.default_skill_rank} {p.name}</span>
+                        <Button aria-label={`Move ${p.name} to Bottom pool`} variant="secondary" onClick={() => setHalfByPlayerId((prev) => ({ ...(prev || {}), [p.id]: 'bottom' }))}>Move to Bottom</Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-md border border-black/10">
+                  <div className="border-b bg-black/5 px-4 py-2 text-sm font-semibold">Bottom Pool ({bottomHalf.length})</div>
+                  <ul className="px-4 py-3 text-sm">
+                    {bottomHalf.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between py-1">
+                        <span>#{p.skillRank ?? p.default_skill_rank} {p.name}</span>
+                        <Button aria-label={`Move ${p.name} to Top pool`} variant="secondary" onClick={() => setHalfByPlayerId((prev) => ({ ...(prev || {}), [p.id]: 'top' }))}>Move to Top</Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {/* Balance validation */}
+              {!isBalanced && (
+                <div className="mt-2 text-xs text-red-600">Pools should be balanced (size difference ≤ 1) for best pairing.</div>
+              )}
+            </div>
+
+            {/* Entries & Groups */}
+            <div className="mb-1 flex items-center justify-between">
               <div className="text-sm text-foreground/70">
                 Generated entries: {generatedEntries.length}
+                <span className="ml-2 text-foreground/50">(based on current pools)</span>
               </div>
               <label className="text-sm">
                 <span className="mr-2 text-foreground/70">Number of Groups</span>
@@ -275,7 +369,7 @@ export default function NewTournamentWizard() {
             </div>
 
             <div className="mt-4 flex justify-end">
-              <Button variant="ghost" onClick={regeneratePairs}>
+              <Button variant="ghost" onClick={regeneratePairs} disabled={!isBalanced || generatedEntries.length === 0}>
                 Regenerate Pairs
               </Button>
             </div>
@@ -284,7 +378,11 @@ export default function NewTournamentWizard() {
               <Button variant="secondary" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(4)} disabled={!groups.length}>Next</Button>
+              <div className="text-xs text-foreground/60">
+                {!isBalanced && <span>Balance pools to continue.</span>}
+                {isBalanced && generatedEntries.length === 0 && <span>No entries yet.</span>}
+              </div>
+              <Button onClick={() => setStep(4)} disabled={!groups.length || !isBalanced}>Next</Button>
             </div>
           </CardContent>
         </Card>

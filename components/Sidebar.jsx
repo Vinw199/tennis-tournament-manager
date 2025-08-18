@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signout } from "@/app/(auth)/actions";
 import { usePathname } from "next/navigation";
 
 const navItems = [
@@ -31,13 +32,13 @@ function NavLink({ href, label }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ spaceName = "" }) {
   return (
     <aside className="hidden shrink-0 md:block md:w-72 bg-gradient-to-b from-[#1e5a1a] via-[var(--brand)] to-[#3a8f34] text-white">
       <div className="sticky top-0 h-screen p-5">
         <div className="mb-6">
           <div className="text-xs uppercase tracking-wide text-white/70">Space</div>
-          <div className="mt-1 text-lg font-semibold">Jorhat Sunday Socials</div>
+          <div className="mt-1 text-lg font-semibold">{spaceName || "—"}</div>
         </div>
 
         <nav className="space-y-1">
@@ -48,6 +49,14 @@ export default function Sidebar() {
 
         <div className="mt-8 rounded-md border border-white/20 bg-white/5 p-3 text-xs text-white/80">
           Accent color: <span className="font-medium text-accent">Purple</span>
+        </div>
+
+        <div className="absolute bottom-5 left-5 right-5">
+          <form action={signout}>
+            <button className="w-full rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40">
+              Sign out
+            </button>
+          </form>
         </div>
       </div>
     </aside>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
-import { listPlayers, upsertPlayer, deletePlayer } from "../../../lib/localStore";
+import { createClient } from "@/utils/supabase/client";
 
 function PlayerForm({ initial, onSave }) {
   const [name, setName] = useState(initial?.name || "");
@@ -40,14 +40,20 @@ function PlayerForm({ initial, onSave }) {
         <input className="w-full rounded-md border px-3 py-2" value={url} onChange={(e) => setUrl(e.target.value)} />
       </label>
       <div className="md:col-span-2 flex justify-end">
-        <Button onClick={() => valid && onSave({
-          id: initial?.id || `p_${Date.now()}`,
-          name,
-          default_skill_rank: Number(rank),
-          age: age === "" ? null : Number(age),
-          gender: gender || null,
-          profile_picture_url: url || null,
-        })} disabled={!valid}>Save</Button>
+        <Button onClick={() => {
+          if (!valid) return;
+          const payload = {
+            name,
+            default_skill_rank: Number(rank),
+            age: age === "" ? null : Number(age),
+            gender: gender || null,
+            profile_picture_url: url || null,
+          };
+          if (initial?.id) {
+            payload.id = initial.id;
+          }
+          onSave(payload);
+        }} disabled={!valid}>Save</Button>
       </div>
     </div>
   );
@@ -59,7 +65,17 @@ export default function ClubRoster() {
   const [editing, setEditing] = useState(null);
 
   useEffect(() => {
-    setPlayers(listPlayers());
+    const supabase = createClient();
+    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    async function load() {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id,name,default_skill_rank,age,gender,profile_picture_url")
+        .eq("space_id", spaceId)
+        .order("name", { ascending: true });
+      if (!error && data) setPlayers(data);
+    }
+    load();
   }, []);
 
   function openAdd() {
@@ -70,14 +86,53 @@ export default function ClubRoster() {
     setEditing(p);
     setShow(true);
   }
-  function save(p) {
-    upsertPlayer(p);
-    setPlayers(listPlayers());
+  async function save(p) {
+    const supabase = createClient();
+    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    if (p.id) {
+      const { error } = await supabase
+        .from("players")
+        .update({
+          name: p.name,
+          default_skill_rank: p.default_skill_rank,
+          age: p.age,
+          gender: p.gender,
+          profile_picture_url: p.profile_picture_url,
+        })
+        .eq("id", p.id)
+        .eq("space_id", spaceId);
+      if (error) return alert(error.message);
+    } else {
+      const { error } = await supabase
+        .from("players")
+        .insert([{ ...p, space_id: spaceId }]);
+      if (error) return alert(error.message);
+    }
+    // reload list
+    const { data } = await supabase
+      .from("players")
+      .select("id,name,default_skill_rank,age,gender,profile_picture_url")
+      .eq("space_id", spaceId)
+      .order("name", { ascending: true });
+    setPlayers(data || []);
     setShow(false);
   }
-  function remove(id) {
-    deletePlayer(id);
-    setPlayers(listPlayers());
+
+  async function remove(id) {
+    const supabase = createClient();
+    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    const { error } = await supabase
+      .from("players")
+      .delete()
+      .eq("id", id)
+      .eq("space_id", spaceId);
+    if (error) return alert(error.message);
+    const { data } = await supabase
+      .from("players")
+      .select("id,name,default_skill_rank,age,gender,profile_picture_url")
+      .eq("space_id", spaceId)
+      .order("name", { ascending: true });
+    setPlayers(data || []);
   }
 
   return (
