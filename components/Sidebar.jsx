@@ -37,7 +37,6 @@ export default function Sidebar({ spaceName = "" }) {
     <aside className="hidden shrink-0 md:block md:w-72 bg-gradient-to-b from-[#1e5a1a] via-[var(--brand)] to-[#3a8f34] text-white">
       <div className="sticky top-0 h-screen p-5">
         <div className="mb-6">
-          <div className="text-xs uppercase tracking-wide text-white/70">Space</div>
           <div className="mt-1 text-lg font-semibold">{spaceName || "—"}</div>
         </div>
 
@@ -47,9 +46,6 @@ export default function Sidebar({ spaceName = "" }) {
           ))}
         </nav>
 
-        <div className="mt-8 rounded-md border border-white/20 bg-white/5 p-3 text-xs text-white/80">
-          Accent color: <span className="font-medium text-accent">Purple</span>
-        </div>
 
         <div className="absolute bottom-5 left-5 right-5">
           <form action={signout}>

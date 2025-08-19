@@ -1,19 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../../../../components/ui/Button";
 import { Card, CardContent, CardHeader } from "../../../../components/ui/Card";
 import Stepper from "../../../../components/ui/Stepper";
-import Modal from "../../../../components/ui/Modal";
 import { useRouter } from "next/navigation";
-import { saveTournament } from "../../../../lib/localStore";
-import { getWizardDraft, setWizardDraft, clearWizardDraft } from "../../../../lib/wizardDraft";
+import { launchTournamentAction } from "../../../(wizard)/actions";
+import { getWizardDraft, setWizardDraft, clearWizardDraft } from "../../../../data/wizardDraft";
+import { getWizardDraftFromDbClient, upsertWizardDraftInDbClient, clearWizardDraftInDbClient } from "../../../../data/wizardDraft.client";
 import {
   generateBalancedDoublesEntries,
   snakeSeedEntriesIntoGroups,
   generateRoundRobinMatchesForGroup,
   generateBalancedDoublesEntriesFromPools,
-} from "../../../../lib/tournament";
+} from "../../../../domain/tournament";
 
 const DEFAULT_GROUPS = 2;
 
@@ -30,19 +30,49 @@ export default function NewTournamentWizard() {
     leagueMatchFormat: "Total 4 games",
   });
 
-  const [roster] = useState(() => [
-    { id: "p1", name: "Player 1", skillRank: 1, age: 28, gender: "M" },
-    { id: "p2", name: "Player 2", skillRank: 2, age: 29, gender: "M" },
-    { id: "p3", name: "Player 3", skillRank: 3, age: 27, gender: "F" },
-    { id: "p4", name: "Player 4", skillRank: 4, age: 30, gender: "F" },
-    { id: "p5", name: "Player 5", skillRank: 5, age: 26, gender: "M" },
-    { id: "p6", name: "Player 6", skillRank: 6, age: 25, gender: "M" },
-  ]);
+  const [roster, setRoster] = useState([]);
+  // Load roster from Supabase for the current Space
+  useEffect(() => {
+    (async () => {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+      const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+      if (!spaceId) return;
+      const { data } = await supabase
+        .from("players")
+        .select("id, name, default_skill_rank:default_skill_rank, age, gender")
+        .eq("space_id", spaceId)
+        .eq("is_active", true)
+        .order("default_skill_rank", { ascending: true });
+      const mapped = (data || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        skillRank: p.default_skill_rank,
+        age: p.age,
+        gender: p.gender,
+      }));
+      setRoster(mapped);
+    })();
+  }, []);
 
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(new Set());
   const [numberOfGroups, setNumberOfGroups] = useState(DEFAULT_GROUPS);
   const [pairsSeed, setPairsSeed] = useState(0);
   const [halfByPlayerId, setHalfByPlayerId] = useState(null); // { [playerId]: 'top'|'bottom' }
+
+  // Hydrate from Supabase or localStorage on mount
+  useEffect(() => {
+    (async () => {
+      const dbDraft = await getWizardDraftFromDbClient();
+      const draft = dbDraft;
+      if (!draft) return;
+      setStep(draft.step ?? 1);
+      setDetails((prev) => draft.details ?? prev);
+      setSelectedPlayerIds(new Set(draft.selectedPlayerIds ?? []));
+      setNumberOfGroups((prev) => draft.numberOfGroups ?? prev);
+      setHalfByPlayerId(draft.halfByPlayerId ?? null);
+    })();
+  }, []);
 
   // Derived data for steps 3
   // Initialize recommended halves when entering step 3 or selection changes
@@ -103,32 +133,33 @@ export default function NewTournamentWizard() {
     setPairsSeed((s) => s + 1);
   }
 
-  function launchTournament() {
-    const id = `t_${Date.now()}`;
-    // Flatten model for manage page
-    const payload = {
-      id,
-      details,
-      roster,
-      selectedPlayerIds: Array.from(selectedPlayerIds),
-      generatedEntries,
-      numberOfGroups,
-      groups,
-      matches: checklist.flatMap((groupMatches, gi) =>
-        groupMatches.map((m, j) => ({
-          id: `g${gi}_${j}`,
-          round: `Group ${String.fromCharCode(65 + gi)}`,
-          entry1: m.entry1,
-          entry2: m.entry2,
-          entry1_score: null,
-          entry2_score: null,
-          status: "pending",
-        }))
-      ),
-    };
-    saveTournament(payload);
-    clearWizardDraft();
-    router.push(`/t/${id}/manage`);
+  async function launchTournament() {
+    const entries = generatedEntries.map((e) => ({ name: e.name }));
+    // Build matches referencing entries by index within their group list
+    const entryIndexById = new Map();
+    generatedEntries.forEach((e, i) => entryIndexById.set(e.id, i + 1)); // 1-based index for SQL array access
+    const matches = checklist.flatMap((groupMatches, gi) =>
+      groupMatches.map((m) => ({
+        round: `Group ${String.fromCharCode(65 + gi)}`,
+        entry1_index: entryIndexById.get(m.entry1.id),
+        entry2_index: entryIndexById.get(m.entry2.id),
+      }))
+    );
+    const { tournamentId, error } = await launchTournamentAction({
+      name: details.name,
+      date: details.date,
+      entryFee: details.entryFee,
+      prize: details.prize,
+      settings: { leagueMatchFormat: details.leagueMatchFormat, groups: numberOfGroups },
+      entries,
+      matches,
+    });
+    if (error) {
+      alert(`Failed to launch: ${error}`);
+      return;
+    }
+    clearWizardDraftInDbClient();
+    router.push(`/t/${tournamentId}/manage`);
   }
 
   // Draft autosave
@@ -139,12 +170,17 @@ export default function NewTournamentWizard() {
     numberOfGroups,
     halfByPlayerId,
   };
-  // Lightweight autosave on render
-  setWizardDraft(draft);
+  // Debounced Supabase upsert
+  useEffect(() => {
+    const tid = setTimeout(() => {
+      upsertWizardDraftInDbClient(draft);
+    }, 400);
+    return () => clearTimeout(tid);
+  }, [JSON.stringify(draft)]);
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="mb-2 text-2xl font-bold">New Tournament</h1>
+      <h1 className="mb-2 text-2xl font-bold">New Tournament {draft.step ? `(Step ${draft.step})` : ""}</h1>
       <Stepper steps={steps} current={step} />
 
       {step === 1 && (
@@ -426,7 +462,13 @@ export default function NewTournamentWizard() {
               <Button variant="secondary" onClick={() => setStep(3)}>
                 Back
               </Button>
-              <Button onClick={launchTournament}>Launch Tournament</Button>
+              <Button onClick={launchTournament} disabled={
+                !details.name.trim() ||
+                selectedPlayerIds.size < 4 ||
+                !generatedEntries.length ||
+                !groups.length ||
+                !isBalanced
+              }>Launch Tournament</Button>
             </div>
           </CardContent>
         </Card>

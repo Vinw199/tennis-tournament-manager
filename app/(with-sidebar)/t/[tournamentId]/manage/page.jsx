@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader } from "../../../../../components/ui/Card
 import Button from "../../../../../components/ui/Button";
 import ScoreModal from "../../../../../components/score/ScoreModal";
 import ConfirmDialog from "../../../../../components/ui/ConfirmDialog";
-import { computeStandings } from "../../../../../lib/standings";
-import { generateRoundRobinMatchesForGroup } from "../../../../../lib/tournament";
-import { createSemisFinalBracket } from "../../../../../lib/bracket";
+import { computeStandings } from "../../../../../domain/tournament/standings";
+import { createSemisFinalBracket } from "../../../../../domain/tournament/bracket";
 import Bracket from "../../../../../components/bracket/Bracket";
-import { getTournament, saveTournament } from "../../../../../lib/localStore";
+import { createClient } from "@/utils/supabase/client";
+import { completeTournamentAction, createFinalAction, createSemisAction } from "../../../../t/actions";
 
 export default function ManageTournament({ params }) {
   const { tournamentId } = React.use(params);
@@ -17,60 +17,85 @@ export default function ManageTournament({ params }) {
   const [groups, setGroups] = useState([]);
   const [matches, setMatches] = useState([]);
   const [tournament, setTournament] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const t = getTournament(tournamentId);
-    if (t) {
-      setTournament(t);
-      setGroups(t.groups || []);
-      setMatches(
-        (t.matches || []).map((m, idx) => ({
-          ...m,
-          id: m.id || `g_${idx}`,
-          round: m.round || `Group ${String.fromCharCode(65 + (idx % 2))}`,
-        }))
-      );
-    } else {
-      // fallback for direct access
-      const groupA = [
-        { id: "e1", name: "Team A" },
-        { id: "e2", name: "Team B" },
-        { id: "e3", name: "Team C" },
-      ];
-      const groupB = [
-        { id: "e4", name: "Team D" },
-        { id: "e5", name: "Team E" },
-        { id: "e6", name: "Team F" },
-      ];
-      setGroups([groupA, groupB]);
-      const all = [];
-      [groupA, groupB].forEach((entries, gi) => {
-        const gm = generateRoundRobinMatchesForGroup(entries).map((m, j) => ({
-          id: `g${gi}_${j}`,
-          round: `Group ${String.fromCharCode(65 + gi)}`,
-          entry1: m.entry1,
-          entry2: m.entry2,
-          entry1_score: null,
-          entry2_score: null,
-          status: "pending",
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const supabase = createClient();
+        const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+        // Determine admin
+        const { data: userRes } = await supabase.auth.getUser();
+        const user = userRes?.user;
+        if (user && spaceId) {
+          const { data: mem } = await supabase
+            .from("space_members")
+            .select("role")
+            .eq("space_id", spaceId)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setIsAdmin(mem?.role === "admin");
+        } else {
+          setIsAdmin(false);
+        }
+
+        // Fetch entries and matches for this tournament
+        const [{ data: entries, error: e1 }, { data: matches, error: e2 }] = await Promise.all([
+          supabase.from("entries").select("id,name").eq("tournament_id", tournamentId),
+          supabase
+            .from("matches")
+            .select("id, round, entry1_id, entry2_id, entry1_score, entry2_score, status")
+            .eq("tournament_id", tournamentId),
+        ]);
+        if (e1 || e2) throw new Error(e1?.message || e2?.message || "Failed to load");
+        if (!entries || !matches) throw new Error("Not found");
+
+        const entryById = new Map(entries.map((e) => [e.id, e]));
+        const hydratedMatches = matches.map((m) => ({
+          id: m.id,
+          round: m.round,
+          entry1: entryById.get(m.entry1_id),
+          entry2: entryById.get(m.entry2_id),
+          entry1_score: m.entry1_score,
+          entry2_score: m.entry2_score,
+          status: m.status,
         }));
-        all.push(...gm);
-      });
-      setMatches(all);
-    }
+
+        // Derive groups from matches: collect unique entries per round that starts with "Group "
+        const groupLabels = Array.from(new Set(hydratedMatches.map((m) => m.round).filter((r) => r?.startsWith("Group "))));
+        const derivedGroups = groupLabels.map((label) => {
+          const set = new Map();
+          hydratedMatches
+            .filter((m) => m.round === label)
+            .forEach((m) => {
+              if (m.entry1) set.set(m.entry1.id, m.entry1);
+              if (m.entry2) set.set(m.entry2.id, m.entry2);
+            });
+          return Array.from(set.values());
+        });
+
+        // Fetch tournament status
+        const { data: tRow } = await supabase
+          .from("tournaments")
+          .select("id, status")
+          .eq("id", tournamentId)
+          .maybeSingle();
+        setTournament(tRow || { id: tournamentId });
+        setGroups(derivedGroups);
+        setMatches(hydratedMatches);
+      } catch (err) {
+        setError(err?.message || "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [tournamentId]);
 
-  // Persist changes to local storage whenever matches (or groups) update
-  useEffect(() => {
-    if (!groups.length && !matches.length) return;
-    const payload = {
-      ...(tournament || {}),
-      id: tournamentId,
-      groups,
-      matches,
-    };
-    saveTournament(payload);
-  }, [groups, matches, tournamentId]);
+  // No local persistence; DB is source of truth
 
   const [activeMatch, setActiveMatch] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -92,41 +117,95 @@ export default function ManageTournament({ params }) {
   }, [groups, matches]);
 
   const [bracket, setBracket] = useState(null);
+  const [bracketRefresh, setBracketRefresh] = useState(0);
+  const [semisExist, setSemisExist] = useState(false);
+  const [semisCompleted, setSemisCompleted] = useState(false);
+  const [finalCompleted, setFinalCompleted] = useState(false);
 
   useEffect(() => {
-    if (!allGroupMatchesCompleted) {
-      setBracket(null);
-      return;
-    }
-    const a = standingsByGroup[0] || [];
-    const b = standingsByGroup[1] || [];
-    const a1 = a.find((s) => s.rank === 1)?.entry;
-    const a2 = a.find((s) => s.rank === 2)?.entry;
-    const b1 = b.find((s) => s.rank === 1)?.entry;
-    const b2 = b.find((s) => s.rank === 2)?.entry;
-    if (!a1 || !a2 || !b1 || !b2) return;
+    (async () => {
+      const supabase = createClient();
+      // Build bracket model from DB if present; otherwise scaffold with TBD
+      const { data: entries } = await supabase.from("entries").select("id,name").eq("tournament_id", tournamentId);
+      const entryById = new Map(entries?.map((e) => [e.id, e]) || []);
 
-    // Initialize or refresh bracket if participants changed
-    if (!bracket) {
-      setBracket(createSemisFinalBracket({ a1, a2, b1, b2 }));
-      return;
-    }
-    const sf1 = bracket.matches.find((m) => m.id === "sf1");
-    const sf2 = bracket.matches.find((m) => m.id === "sf2");
-    const same =
-      sf1?.slots[0].participant?.id === a1.id &&
-      sf1?.slots[1].participant?.id === b2.id &&
-      sf2?.slots[0].participant?.id === b1.id &&
-      sf2?.slots[1].participant?.id === a2.id;
-    if (!same) setBracket(createSemisFinalBracket({ a1, a2, b1, b2 }));
-  }, [allGroupMatchesCompleted, standingsByGroup]);
+      const { data: semis } = await supabase
+        .from("matches")
+        .select("id, entry1_id, entry2_id, entry1_score, entry2_score, status")
+        .eq("tournament_id", tournamentId)
+        .eq("round", "Semi-Finals");
+      const hasSemis = Array.isArray(semis) && semis.length >= 2;
+      const semisDone = !!hasSemis && semis.every((m) => m.status === "completed" && typeof m.entry1_score === "number" && typeof m.entry2_score === "number");
+      setSemisExist(hasSemis);
+      setSemisCompleted(semisDone);
+      const { data: final } = await supabase
+        .from("matches")
+        .select("id, entry1_id, entry2_id, entry1_score, entry2_score, status")
+        .eq("tournament_id", tournamentId)
+        .eq("round", "Final")
+        .maybeSingle();
+
+      const model = { rounds: [{ name: "Semi-Finals", matches: ["sf1", "sf2"] }, { name: "Final", matches: ["final"] }], matches: [] };
+
+      // Semis (use DB if available; else TBD)
+      const s1 = semis?.[0];
+      const s2 = semis?.[1];
+      model.matches.push({
+        id: "sf1",
+        dbId: s1?.id || null,
+        name: "Semi-Final 1",
+        slots: [
+          { participant: s1 ? entryById.get(s1.entry1_id) : null },
+          { participant: s1 ? entryById.get(s1.entry2_id) : null },
+        ],
+        entry1_score: s1?.entry1_score ?? null,
+        entry2_score: s1?.entry2_score ?? null,
+        status: s1?.status ?? "pending",
+      });
+      model.matches.push({
+        id: "sf2",
+        dbId: s2?.id || null,
+        name: "Semi-Final 2",
+        slots: [
+          { participant: s2 ? entryById.get(s2.entry1_id) : null },
+          { participant: s2 ? entryById.get(s2.entry2_id) : null },
+        ],
+        entry1_score: s2?.entry1_score ?? null,
+        entry2_score: s2?.entry2_score ?? null,
+        status: s2?.status ?? "pending",
+      });
+
+      // Final (use DB if available; else TBD with sources)
+      model.matches.push({
+        id: "final",
+        dbId: final?.id || null,
+        name: "Final",
+        slots: [
+          { participant: final ? entryById.get(final.entry1_id) : null, source: { type: "winner", matchId: "sf1" } },
+          { participant: final ? entryById.get(final.entry2_id) : null, source: { type: "winner", matchId: "sf2" } },
+        ],
+        entry1_score: final?.entry1_score ?? null,
+        entry2_score: final?.entry2_score ?? null,
+        status: final?.status ?? "pending",
+      });
+
+      setBracket(model);
+      const done = final && final.status === "completed" && typeof final.entry1_score === "number" && typeof final.entry2_score === "number";
+      setFinalCompleted(!!done);
+    })();
+  }, [allGroupMatchesCompleted, bracketRefresh, tournamentId]);
 
   function openScore(m) {
     setActiveMatch(m);
     setShowModal(true);
   }
 
-  function saveScore(data) {
+  async function saveScore(data) {
+    if (!isAdmin) {
+      alert("Only admins can record scores.");
+      setShowModal(false);
+      return;
+    }
     if (!activeMatch) return;
     // Try bracket first
     if (bracket && bracket.matches.some((m) => m.id === activeMatch.id)) {
@@ -138,12 +217,46 @@ export default function ManageTournament({ params }) {
             : m
         ),
       }));
+      // Persist bracket match score to DB if mapped
+      const supabase = createClient();
+      if (activeMatch.dbId) {
+        await supabase
+          .from("matches")
+          .update({ entry1_score: data.entry1_score, entry2_score: data.entry2_score, status: "completed" })
+          .eq("id", activeMatch.dbId);
+      }
+      // Refresh bracket from DB
       setShowModal(false);
+      setBracketRefresh((x) => x + 1);
       return;
     }
     // Otherwise update group stage matches
     setMatches((prev) => prev.map((m) => (m.id === activeMatch.id ? { ...m, ...data, status: "completed" } : m)));
+    // Persist to DB
+    const supabase = createClient();
+    await supabase
+      .from("matches")
+      .update({ entry1_score: data.entry1_score, entry2_score: data.entry2_score, status: "completed" })
+      .eq("id", activeMatch.id);
     setShowModal(false);
+  }
+
+  async function handleGenerateSemis() {
+    const res = await createSemisAction({ tournamentId });
+    if (res?.error) {
+      alert(res.error);
+      return;
+    }
+    setBracketRefresh((x) => x + 1);
+  }
+
+  async function handleGenerateFinal() {
+    const res = await createFinalAction({ tournamentId });
+    if (res?.error) {
+      alert(res.error);
+      return;
+    }
+    setBracketRefresh((x) => x + 1);
   }
 
   function requestForfeit(m, winnerEntryId) {
@@ -176,18 +289,45 @@ export default function ManageTournament({ params }) {
           <h1 className="text-2xl font-bold">Manage Tournament</h1>
           <p className="text-sm text-foreground/70">Tournament ID: {tournamentId}</p>
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => navigator.clipboard.writeText(`${location.origin}/t/${tournamentId}/live`)}
-        >
-          Share Live Link
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => navigator.clipboard.writeText(`${location.origin}/t/${tournamentId}/live`)}
+          >
+            Share Live Link
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="primary"
+              disabled={!finalCompleted}
+              onClick={async () => {
+                const res = await completeTournamentAction({ tournamentId });
+                if (res?.error) return alert(res.error);
+                location.href = "/past-events";
+              }}
+            >
+              Complete Tournament
+            </Button>
+          )}
+        </div>
       </header>
+
+      {error && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="font-semibold">Match Checklist</div>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">Match Checklist</div>
+              {isAdmin && tournament?.status !== "completed" && (
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" onClick={handleGenerateSemis} disabled={!allGroupMatchesCompleted}>Generate Semis</Button>
+                  <Button variant="secondary" onClick={handleGenerateFinal} disabled={!semisExist || !semisCompleted}>Generate Final</Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -221,10 +361,12 @@ export default function ManageTournament({ params }) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="font-semibold">Standings</div>
-              <div className="flex items-center gap-2 text-xs text-foreground/60">
-                <span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-accent/60" />
-                Top 2 qualify
-              </div>
+              {tournament?.status !== "completed" && (
+                <div className="flex items-center gap-2 text-xs text-foreground/60">
+                  <span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-accent/60" />
+                  Top 2 qualify
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -317,6 +459,7 @@ export default function ManageTournament({ params }) {
                   // Open the standard score modal on bracket matches
                   setActiveMatch({
                     id: m.id,
+                    dbId: m.dbId || null,
                     round: m.name,
                     entry1: m.slots[0].participant,
                     entry2: m.slots[1].participant,

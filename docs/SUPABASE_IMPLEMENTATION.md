@@ -36,7 +36,7 @@ This document outlines how we will replace all localStorage usage with Supabase,
 - `entries` (id, tournament_id, name)
 - `entry_players` (entry_id, player_id, skill_rank_for_tournament)
 - `matches` (id, tournament_id, round, entry1_id, entry2_id, entry1_score, entry2_score, status)
-- `wizard_drafts` (id, space_id, user_id, updated_at, data jsonb) – replaces localStorage draft
+- `wizard_drafts` (id, space_id, user_id, updated_at, data jsonb) – Supabase-only drafts (no localStorage)
 - (Optional later) `club_finances`, `templates`
 
 Migrations will live in `supabase/migrations` with SQL files checked into git.
@@ -55,9 +55,7 @@ Migrations will live in `supabase/migrations` with SQL files checked into git.
   - Use browser Supabase client for Realtime and client-side interactions (e.g., scoring modal).
 
 ### 7) Scoring & Live Updates
-- Write scores with RPC or direct table updates (RLS-protected).
-- Live page subscribes to `matches` channel scoped by `tournament_id` (and `space_id`).
-- Manage page also subscribes so multiple admins stay in sync.
+- Write scores with direct table updates (RLS-protected). No realtime for cost control.
 
 ### 8) Storage (Player Pictures)
 - Bucket `avatars` with public read and RLS write by member.

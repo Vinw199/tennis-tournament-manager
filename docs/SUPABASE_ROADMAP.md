@@ -30,21 +30,19 @@
 - **Protect admin area**: In `app/(with-sidebar)/layout.jsx` (server), check session; redirect to `(auth)/login` if no session.
 - **Space scope**: Read `NEXT_PUBLIC_SPACE_ID` on server; all queries filter by `space_id`; RLS enforces membership via `space_members`.
 
-### Phase 3 — Wizard draft persistence (replace localStorage)
-- Replace `lib/wizardDraft.js` with Supabase-backed draft using `wizard_drafts`.
-- Upsert latest draft for `(space_id, user_id)` on changes; debounce 300–500ms.
-- Draft shape in `wizard_drafts.data`:
-  - `step`, `details`, `selectedPlayerIds`, `numberOfGroups`, `halfByPlayerId`.
-- On wizard load, fetch latest draft and hydrate state.
-- On successful launch, delete the draft.
+### Phase 3 — Wizard draft persistence (Supabase-only)
+- Use `wizard_drafts` table to persist drafts per `(space_id, user_id)`.
+- Upsert latest draft on changes; debounce 300–500ms.
+- Draft shape in `wizard_drafts.data`: `step`, `details`, `selectedPlayerIds`, `numberOfGroups`, `halfByPlayerId`.
+- On wizard load, fetch latest draft and hydrate state; on launch, delete the draft.
 
 ### Phase 4 — Players (roster) on Supabase
 - **Reads**: Server Components fetch `players` filtered by `space_id`.
 - **CRUD**: Client mutations via Supabase browser client (toasts on success/failure), RLS-protected.
 - **Avatars**: Storage bucket `avatars` with authenticated writes; store public URL in `players.profile_picture_url`.
 
-### Phase 5 — Launch Tournament via transactional RPC
-- **RPC: `launch_tournament` (SQL, idempotent)**
+### Phase 5 — Launch Tournament
+- Use direct inserts via server action (no RPC) for simplicity and cost control.
   - Inputs: `space_id`, `name`, `date`, `settings jsonb`, `entry_fee`, `prize_money_details`, `entries payload` (array of pairs with ranks), `number_of_groups`, `round_robin pairs`, `idempotency_key`.
   - Transaction:
     - Insert `tournaments` (status `active`).
@@ -52,7 +50,7 @@
     - Insert group-stage `matches` with rounds like `Group A`, `Group B`, ...
   - Returns: `tournament_id`.
   - Security: Validate caller membership; execute with `security definer` and internal checks.
-- **Wizard change**: On “Launch Tournament”, reuse existing helpers in `lib/tournament.js` to build payload, call RPC, clear draft, `router.push(/t/[id]/manage)`.
+  - On “Launch Tournament”, build entries and round-robin matches, insert `tournaments`, `entries`, `matches`, clear draft, redirect to Manage.
 
 ### Phase 6 — Manage and Live pages read from DB
 - **Manage (`app/(with-sidebar)/t/[tournamentId]/manage/page`)**:

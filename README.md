@@ -5,13 +5,13 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 ### Tech Stack
 - Next.js App Router (15) + React 19
 - Tailwind CSS v4
-- Local development: Supabase backend ready (schema, indexes, RLS); app still uses `localStorage` until integration is completed.
+- Supabase backend (schema, indexes, RLS). Drafts and launches are Supabase-only (no localStorage).
 
 ### Project Structure (high level)
 - `app/layout.js` – root layout with no sidebar
 - `app/(with-sidebar)/layout.jsx` – admin layout with the left sidebar
   - `app/(with-sidebar)/page.js` – Event Dashboard
-  - `app/(with-sidebar)/roster/page.js` – Club Roster (CRUD via localStorage)
+  - `app/(with-sidebar)/roster/page.js` – Club Roster (Supabase CRUD)
   - `app/(with-sidebar)/past-events/page.js`
   - `app/(with-sidebar)/settings/page.js`
 - `app/(wizard)/tournaments/new/` – Tournament creation wizard (no sidebar)
@@ -24,7 +24,7 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
   - Balanced doubles entry generation
   - Snake seeding into groups
   - Round-robin match checklist per group
-  - Launch creates a tournament in localStorage and redirects to Manage
+  - Draft autosaves to Supabase; launch inserts to Supabase and redirects to Manage
 - Manage:
   - Match checklist per group, enter/edit scores, forfeit with confirm dialog
   - Standings calculated with tie-breakers (games won → game difference → head-to-head)
@@ -33,22 +33,10 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 - Live:
   - Read-only standings and match checklist; refresh to see latest (realtime planned)
 
-### Data Persistence (MVP)
-Local storage utilities in `lib/localStore.js`:
-- Tournaments are stored under key `ttapp_tournaments_v1` as a map `{ [id]: tournament }`
-- Players are stored under key `ttapp_players_v1` as an array
-
-Tournament object shape (simplified):
-```json
-{
-  "id": "t_...",
-  "details": { "name": "...", "date": "YYYY-MM-DD", ... },
-  "groups": [ [entry], [entry], ... ],
-  "matches": [
-    { "id": "g0_0", "round": "Group A", "entry1": {...}, "entry2": {...}, "entry1_score": null, "entry2_score": null, "status": "pending" }
-  ]
-}
-```
+### Data Persistence
+- Supabase tables: `spaces`, `space_members`, `players`, `tournaments`, `entries`, `matches`, `wizard_drafts`.
+- Drafts: `wizard_drafts` per `(space_id, user_id)`; autosave debounced.
+- Launch: inserts `tournaments`, `entries`, and group-stage `matches`.
 
 ### Design System
 - Brand green: `#2f7a2a` (sidebar gradient uses darker → lighter)

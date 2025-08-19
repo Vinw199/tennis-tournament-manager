@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Button from "../../../../components/ui/Button";
-import { clearWizardDraft, getWizardDraft, setWizardDraft } from "../../../../lib/wizardDraft";
+import { upsertWizardDraftInDbClient } from "../../../../data/wizardDraft.client";
 
 export default function WizardLayout({ children }) {
   const router = useRouter();
@@ -16,10 +16,9 @@ export default function WizardLayout({ children }) {
             <Button
               variant="secondary"
               onClick={() => {
-                const draft = getWizardDraft();
                 const ok = confirm("Save draft before exit? Press Cancel to stay on this page.");
                 if (ok) {
-                  setWizardDraft(draft || { step: 1, savedAt: Date.now() });
+                  upsertWizardDraftInDbClient({ step: 1, savedAt: Date.now() });
                   router.push("/");
                 }
               }}
