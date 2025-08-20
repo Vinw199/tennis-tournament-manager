@@ -7,15 +7,16 @@ export async function getWizardDraftFromDbClient() {
   const { data: userRes } = await supabase.auth.getUser();
   const user = userRes?.user;
   if (!user) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("wizard_drafts")
-    .select("data")
+    .select("data, updated_at")
     .eq("space_id", spaceId)
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data?.data || null;
+    .limit(1);
+  if (error) return null;
+  if (!data || data.length === 0) return null;
+  return data[0]?.data || null;
 }
 
 export async function upsertWizardDraftInDbClient(draft) {
@@ -25,7 +26,7 @@ export async function upsertWizardDraftInDbClient(draft) {
   const { data: userRes } = await supabase.auth.getUser();
   const user = userRes?.user;
   if (!user) return { error: "No user" };
-  const payload = { space_id: spaceId, user_id: user.id, data: draft };
+  const payload = { space_id: spaceId, user_id: user.id, data: draft, updated_at: new Date().toISOString() };
   const { error } = await supabase
     .from("wizard_drafts")
     .upsert(payload, { onConflict: "space_id,user_id" });

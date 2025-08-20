@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import StartNewTournamentButton from "../../components/StartNewTournamentButton";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -37,20 +38,24 @@ export default async function Dashboard() {
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Event Dashboard</h1>
         <div className="flex items-center gap-2">
-          {hasDraft && (
+          {hasDraft ? (
+            <>
+              <Link
+                href="/tournaments/new"
+                className="inline-flex items-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2 text-sm shadow hover:bg-black/5"
+              >
+                Continue draft
+              </Link>
+              <StartNewTournamentButton label="Start New Tournament" />
+            </>
+          ) : (
             <Link
               href="/tournaments/new"
-              className="inline-flex items-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2 text-sm shadow hover:bg-black/5"
+              className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-white shadow hover:opacity-95"
             >
-              Continue setup
+              Create New Tournament
             </Link>
           )}
-          <Link
-            href="/tournaments/new"
-            className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-white shadow hover:opacity-95"
-          >
-            Create New Tournament
-          </Link>
         </div>
       </header>
 
@@ -61,7 +66,11 @@ export default async function Dashboard() {
             <div className="flex items-center justify-between text-sm">
               <div>
                 <div className="font-semibold">{activeTournament.name}</div>
-                <div className="text-foreground/60">{activeTournament.date}</div>
+                <div className="text-foreground/60">
+                  {activeTournament.date
+                    ? new Date(activeTournament.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                    : ""}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Link className="rounded-md border px-3 py-1" href={`/t/${activeTournament.id}/manage`}>Manage</Link>
@@ -94,6 +103,7 @@ export default async function Dashboard() {
               </Link>
             </li>
           </ul>
+          {/* Buttons moved to header to avoid duplication */}
         </div>
       </section>
     </div>

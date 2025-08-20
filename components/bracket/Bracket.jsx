@@ -52,34 +52,27 @@ export default function Bracket({ model, onOpenScore }) {
     // Ensure SVG spans the scrollable content
     setSvgSize({ w: container.scrollWidth, h: container.scrollHeight });
 
-    let sf1 = matchRefs.current.get("sf1");
-    let sf2 = matchRefs.current.get("sf2");
-    // Fallback: use the first two semis in insertion order
-    if (!sf1 || !sf2) {
-      const arr = Array.from(matchRefs.current.values());
-      sf1 = sf1 || arr[0];
-      sf2 = sf2 || arr[1];
-    }
-    const final0 = finalSlotRefs.current[0];
-    const final1 = finalSlotRefs.current[1];
-    if (sf1 && final0) {
+    const sf1 = matchRefs.current.get("sf1");
+    const sf2 = matchRefs.current.get("sf2");
+    const finalCard = finalCardRef.current;
+    if (sf1 && sf2 && finalCard) {
       const a = sf1.getBoundingClientRect();
-      const b = final0.getBoundingClientRect();
+      const b = sf2.getBoundingClientRect();
+      const f = finalCard.getBoundingClientRect();
+      // connect to the vertical center of the left edge of the final card for symmetry
+      const finalLeftX = f.left - cRect.left;
+      const finalCenterY = f.top + f.height / 2 - cRect.top;
       next.push({
         x1: a.right - cRect.left,
         y1: a.top + a.height / 2 - cRect.top,
-        x2: b.left - cRect.left,
-        y2: b.top + b.height / 2 - cRect.top,
+        x2: finalLeftX,
+        y2: finalCenterY,
       });
-    }
-    if (sf2 && final1) {
-      const a = sf2.getBoundingClientRect();
-      const b = final1.getBoundingClientRect();
       next.push({
-        x1: a.right - cRect.left,
-        y1: a.top + a.height / 2 - cRect.top,
-        x2: b.left - cRect.left,
-        y2: b.top + b.height / 2 - cRect.top,
+        x1: b.right - cRect.left,
+        y1: b.top + b.height / 2 - cRect.top,
+        x2: finalLeftX,
+        y2: finalCenterY,
       });
     }
     setLines(next);

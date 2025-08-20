@@ -287,7 +287,7 @@ export default function ManageTournament({ params }) {
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Manage Tournament</h1>
-          <p className="text-sm text-foreground/70">Tournament ID: {tournamentId}</p>
+          {/* Removed public display of internal ID */}
         </div>
         <div className="flex items-center gap-2">
           <Button

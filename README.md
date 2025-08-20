@@ -60,11 +60,12 @@ npm run dev
 ```
 
 ### Near-term Roadmap
-- Auth (Supabase) + route protection
-- Autosave/resume drafts for the wizard + exit confirmation
-- Full knockout bracket generation (8–128) with seeding/byes
-- Live page polling or Supabase Realtime
-- Migrate localStorage to Supabase tables with RLS and multi-tenant `space_id`
+- Wizard UX: simplified save flow (no autosave), explicit saves on step change and Exit; deterministic pairing; validations
+- Manage UX: badges for semis/final status, disable all edit actions when tournament is completed, non-admin read-only guard
+- Scoring safety: enforce DB-side locking so writes to `matches` are rejected when parent `tournaments.status = 'completed'` (RLS/trigger)
+- Past Events: recap page with formatted dates and read-only view; filters by date/name
+- Live page: shows name/date, Semis/Final bracket; redirects to recap when completed (no live links for completed events)
+- Testing: unit tests for `domain/` (entries, snake seeding, round-robin, standings); light E2E for create → manage → complete
 
 ### Supabase Status & Docs
 - See `docs/Status Update & Next Steps - 2025-08-18.md` for the latest backend status and immediate next steps.
@@ -72,4 +73,23 @@ npm run dev
   - `docs/SUPABASE_IMPLEMENTATION.md`
   - `docs/SUPABASE_ROADMAP.md`
   - `docs/PROGRESS - 2025-08-18.md` (daily progress log, challenges, and changes)
+
+### Project Context for New Chats
+- Architecture
+  - Supabase-only drafts and launches (no localStorage, no RPCs, no realtime).
+  - Manual knockout flow: buttons to generate Semi-Finals and Final; Final enabled only after semis completed.
+  - Completed tournaments are read-only and shown under Past Events; `/t/[id]/live` redirects to recap when completed.
+- Environment
+  - Required: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SPACE_ID`.
+  - Set `NEXT_PUBLIC_SPACE_ID` to your space's UUID (see `supabase/seed.sql` helper or your existing space).
+- Key Files
+  - Wizard: `app/(wizard)/tournaments/new/page.jsx` and server action `app/(wizard)/actions.js`.
+  - Manage: `app/(with-sidebar)/t/[tournamentId]/manage/page.jsx` and actions `app/t/actions.js`.
+  - Past Events: `app/(with-sidebar)/past-events/page.js` and recap `app/(with-sidebar)/past-events/[tournamentId]/page.js`.
+- Folder Structure
+  - Domain logic: `domain/` (pure helpers for entries, standings, bracket).
+  - Data/clients: `data/` (e.g., wizard draft client helpers).
+- Decisions
+  - No realtime for cost control; Live page is read-only and refresh-based.
+  - RLS enforced by `space_id`; admin-only writes to tournament data.
 

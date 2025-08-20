@@ -24,17 +24,22 @@ export default async function PastEvents() {
         <p className="text-sm text-foreground/70">No completed tournaments yet.</p>
       ) : (
         <ul className="divide-y rounded-md border border-black/10 bg-white">
-          {tournaments.map((t) => (
-            <li key={t.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <div className="font-medium">{t.name}</div>
-                <div className="text-xs text-foreground/60">{t.date}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Link className="rounded-md border px-3 py-1 text-sm" href={`/t/${t.id}/live`}>View</Link>
-              </div>
-            </li>
-          ))}
+          {tournaments.map((t) => {
+            const formattedDate = t.date
+              ? new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : "";
+            return (
+              <li key={t.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <div className="font-medium">{t.name}</div>
+                  <div className="text-xs text-foreground/60">{formattedDate}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link className="rounded-md border px-3 py-1 text-sm" href={`/past-events/${t.id}`}>View</Link>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

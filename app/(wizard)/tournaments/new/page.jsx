@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Button from "../../../../components/ui/Button";
 import { Card, CardContent, CardHeader } from "../../../../components/ui/Card";
 import Stepper from "../../../../components/ui/Stepper";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { launchTournamentAction } from "../../../(wizard)/actions";
-import { getWizardDraft, setWizardDraft, clearWizardDraft } from "../../../../data/wizardDraft";
 import { getWizardDraftFromDbClient, upsertWizardDraftInDbClient, clearWizardDraftInDbClient } from "../../../../data/wizardDraft.client";
+import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
 import {
   generateBalancedDoublesEntries,
   snakeSeedEntriesIntoGroups,
@@ -19,7 +19,11 @@ const DEFAULT_GROUPS = 2;
 
 export default function NewTournamentWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+  const [isHydratingDraft, setIsHydratingDraft] = useState(true);
+  const [isLoadingRoster, setIsLoadingRoster] = useState(true);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [details, setDetails] = useState({
     name: "",
     date: new Date().toISOString().slice(0, 10),
@@ -52,7 +56,19 @@ export default function NewTournamentWizard() {
         gender: p.gender,
       }));
       setRoster(mapped);
+      setIsLoadingRoster(false);
     })();
+  }, []);
+
+  // Header button event from layout
+  useEffect(() => {
+    function onExit() {
+      setShowExitDialog(true);
+    }
+    window.addEventListener('wizard:exit', onExit);
+    return () => {
+      window.removeEventListener('wizard:exit', onExit);
+    };
   }, []);
 
   const [selectedPlayerIds, setSelectedPlayerIds] = useState(new Set());
@@ -62,16 +78,23 @@ export default function NewTournamentWizard() {
 
   // Hydrate from Supabase or localStorage on mount
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const dbDraft = await getWizardDraftFromDbClient();
-      const draft = dbDraft;
-      if (!draft) return;
-      setStep(draft.step ?? 1);
-      setDetails((prev) => draft.details ?? prev);
-      setSelectedPlayerIds(new Set(draft.selectedPlayerIds ?? []));
-      setNumberOfGroups((prev) => draft.numberOfGroups ?? prev);
-      setHalfByPlayerId(draft.halfByPlayerId ?? null);
+      const draft = await getWizardDraftFromDbClient();
+      if (!cancelled) {
+        if (draft) {
+          setStep(draft.step ?? 1);
+          setDetails((prev) => draft.details ?? prev);
+          setSelectedPlayerIds(new Set(draft.selectedPlayerIds ?? []));
+          setNumberOfGroups((prev) => draft.numberOfGroups ?? prev);
+          setHalfByPlayerId(draft.halfByPlayerId ?? null);
+        }
+        setIsHydratingDraft(false);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Derived data for steps 3
@@ -162,7 +185,7 @@ export default function NewTournamentWizard() {
     router.push(`/t/${tournamentId}/manage`);
   }
 
-  // Draft autosave
+  // Draft state payload for explicit saves
   const draft = {
     step,
     details,
@@ -170,17 +193,26 @@ export default function NewTournamentWizard() {
     numberOfGroups,
     halfByPlayerId,
   };
-  // Debounced Supabase upsert
-  useEffect(() => {
-    const tid = setTimeout(() => {
-      upsertWizardDraftInDbClient(draft);
-    }, 400);
-    return () => clearTimeout(tid);
-  }, [JSON.stringify(draft)]);
+
+  async function saveDraft(nextStep) {
+    const payload = nextStep ? { ...draft, step: nextStep } : draft;
+    await upsertWizardDraftInDbClient(payload);
+  }
+
+  async function goToStep(nextStep) {
+    setStep(nextStep);
+    await saveDraft(nextStep);
+  }
+
+  if (isHydratingDraft || isLoadingRoster) {
+    return (
+      <div className="mx-auto max-w-5xl p-6 text-sm text-foreground/70">Loading draft and roster…</div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="mb-2 text-2xl font-bold">New Tournament {draft.step ? `(Step ${draft.step})` : ""}</h1>
+      <h1 className="mb-2 text-2xl font-bold">New Tournament {step ? `(Step ${step})` : ""}</h1>
       <Stepper steps={steps} current={step} />
 
       {step === 1 && (
@@ -258,7 +290,7 @@ export default function NewTournamentWizard() {
               </label>
             </div>
             <div className="mt-5 flex justify-end gap-3">
-              <Button onClick={() => setStep(2)} disabled={!canGoToStep2}>
+              <Button onClick={() => goToStep(2)} disabled={!canGoToStep2}>
                 Next
               </Button>
             </div>
@@ -269,7 +301,27 @@ export default function NewTournamentWizard() {
       {step === 2 && (
         <Card>
           <CardHeader>
-            <div className="font-semibold">Step 2: Select Players</div>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">Step 2: Select Players
+                <span className="ml-2 text-xs font-normal text-foreground/60">{selectedPlayerIds.size}/{roster.length} selected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setSelectedPlayerIds(new Set(roster.map((p) => p.id)))}
+                  disabled={roster.length > 0 && selectedPlayerIds.size === roster.length}
+                >
+                  Select all
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setSelectedPlayerIds(new Set())}
+                  disabled={selectedPlayerIds.size === 0}
+                >
+                  Clear all
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -302,10 +354,11 @@ export default function NewTournamentWizard() {
             </div>
 
             <div className="mt-5 flex items-center justify-between">
-              <Button variant="secondary" onClick={() => setStep(1)}>
+              <Button variant="secondary" onClick={() => goToStep(1)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(3)} disabled={selectedPlayerIds.size < 4}>
+              <div className="text-xs text-foreground/60">Select at least 4 players to continue.</div>
+              <Button onClick={() => goToStep(3)} disabled={selectedPlayerIds.size < 4}>
                 Next
               </Button>
             </div>
@@ -411,14 +464,14 @@ export default function NewTournamentWizard() {
             </div>
 
             <div className="mt-5 flex items-center justify-between">
-              <Button variant="secondary" onClick={() => setStep(2)}>
+              <Button variant="secondary" onClick={() => goToStep(2)}>
                 Back
               </Button>
               <div className="text-xs text-foreground/60">
                 {!isBalanced && <span>Balance pools to continue.</span>}
                 {isBalanced && generatedEntries.length === 0 && <span>No entries yet.</span>}
               </div>
-              <Button onClick={() => setStep(4)} disabled={!groups.length || !isBalanced}>Next</Button>
+              <Button onClick={() => goToStep(4)} disabled={!groups.length || !isBalanced}>Next</Button>
             </div>
           </CardContent>
         </Card>
@@ -459,7 +512,7 @@ export default function NewTournamentWizard() {
               </div>
             </div>
             <div className="mt-5 flex items-center justify-between">
-              <Button variant="secondary" onClick={() => setStep(3)}>
+              <Button variant="secondary" onClick={() => goToStep(3)}>
                 Back
               </Button>
               <Button onClick={launchTournament} disabled={
@@ -473,6 +526,16 @@ export default function NewTournamentWizard() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={showExitDialog}
+        title="Exit Draft"
+        description="Do you want to save before exiting?"
+        confirmLabel="Save & Exit"
+        cancelLabel="Discard"
+        onConfirm={async () => { await saveDraft(); setShowExitDialog(false); router.push("/"); }}
+        onCancel={async () => { await clearWizardDraftInDbClient(); setShowExitDialog(false); router.push("/"); }}
+      />
     </div>
   );
 }

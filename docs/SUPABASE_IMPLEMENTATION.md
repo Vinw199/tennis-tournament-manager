@@ -52,10 +52,12 @@ Migrations will live in `supabase/migrations` with SQL files checked into git.
   - Read players/tournaments/entries/matches via server Supabase client.
   - Filter by `space_id` and `tournament_id`.
 - Client Components:
-  - Use browser Supabase client for Realtime and client-side interactions (e.g., scoring modal).
+  - Use browser Supabase client for client-side interactions (e.g., scoring modal).
+  - Public Live page reads are allowed via RLS for active tournaments only; completed redirects to recap.
 
 ### 7) Scoring & Live Updates
 - Write scores with direct table updates (RLS-protected). No realtime for cost control.
+- Live page is public for active tournaments (RLS policy); completed events should be viewed on the recap route.
 
 ### 8) Storage (Player Pictures)
 - Bucket `avatars` with public read and RLS write by member.
