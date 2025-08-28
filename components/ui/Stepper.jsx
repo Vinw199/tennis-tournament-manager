@@ -12,7 +12,7 @@ export default function Stepper({ steps, current }) {
                 isActive
                   ? "border-brand bg-brand text-white"
                   : isDone
-                  ? "border-accent bg-accent text-white"
+                  ? "border-brand bg-brand text-white"
                   : "border-black/20 bg-white text-foreground/70"
               }`}
               aria-current={isActive ? "step" : undefined}

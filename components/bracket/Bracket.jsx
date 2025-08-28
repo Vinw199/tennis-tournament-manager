@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "../ui/button";
 
 // Minimal bracket renderer for 2 rounds (Semis -> Final)
 // Expects model: { rounds: [...], matches: [...] }
@@ -108,7 +109,7 @@ export default function Bracket({ model, onOpenScore }) {
     <div className="relative overflow-auto" ref={containerRef}>
       {/* SVG connectors */}
       <svg
-        className="pointer-events-none absolute top-0 left-0 z-10 text-accent"
+        className="pointer-events-none absolute top-0 left-0 z-10 text-foreground/20"
         width={svgSize.w}
         height={svgSize.h}
         viewBox={`0 0 ${svgSize.w} ${svgSize.h}`}
@@ -147,9 +148,9 @@ export default function Bracket({ model, onOpenScore }) {
                     <div className="mb-2 flex items-center justify-between text-xs text-foreground/60">
                       <span>{m.name}</span>
                       {onOpenScore && (
-                        <button className="rounded-md border px-2 py-1 text-[11px]" onClick={() => onOpenScore(m)}>
+                        <Button variant="outline" size="sm" onClick={() => onOpenScore(m)}>
                           {m.status === "completed" ? "Edit" : "Score"}
-                        </button>
+                        </Button>
                       )}
                     </div>
                     <div className="flex flex-col gap-1">
@@ -190,22 +191,22 @@ export default function Bracket({ model, onOpenScore }) {
                       <div className="mb-2 flex items-center justify-between text-xs text-foreground/60">
                         <span>{m.name}</span>
                         {onOpenScore && (
-                          <button className="rounded-md border px-2 py-1 text-[11px]" onClick={() => onOpenScore(m)}>
+                          <Button variant="outline" size="sm" onClick={() => onOpenScore(m)}>
                             {m.status === "completed" ? "Edit" : "Score"}
-                          </button>
+                          </Button>
                         )}
                       </div>
                       <div className="flex flex-col gap-1">
-                        <div ref={(el) => (finalSlotRefs.current[0] = el)} className={`flex items-center justify-between ${slot0Winner ? "rounded bg-accent/20" : ""}`}>
+                        <div ref={(el) => (finalSlotRefs.current[0] = el)} className={`flex items-center justify-between ${slot0Winner ? "rounded bg-brand/10" : ""}`}>
                           <span>{m.slots[0].participant?.name || "TBD"}</span>
                           {typeof m.entry1_score === "number" && <span className="text-foreground/60">{m.entry1_score}</span>}
                         </div>
-                        <div ref={(el) => (finalSlotRefs.current[1] = el)} className={`flex items-center justify-between ${slot1Winner ? "rounded bg-accent/20" : ""}`}>
+                        <div ref={(el) => (finalSlotRefs.current[1] = el)} className={`flex items-center justify-between ${slot1Winner ? "rounded bg-brand/10" : ""}`}>
                           <span>{m.slots[1].participant?.name || "TBD"}</span>
                           {typeof m.entry2_score === "number" && <span className="text-foreground/60">{m.entry2_score}</span>}
                         </div>
                         {finalCompleted && (
-                          <div className="mt-2 text-[11px] font-semibold text-accent">Champion: {slot0Winner ? m.slots[0].participant?.name : m.slots[1].participant?.name}</div>
+                          <div className="mt-2 text-[11px] font-semibold text-brand">Champion: {slot0Winner ? m.slots[0].participant?.name : m.slots[1].participant?.name}</div>
                         )}
                       </div>
                     </div>

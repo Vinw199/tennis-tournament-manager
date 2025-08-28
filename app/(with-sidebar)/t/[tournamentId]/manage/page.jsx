@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader } from "../../../../../components/ui/Card";
-import Button from "../../../../../components/ui/Button";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader } from "../../../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../../components/ui/table";
+import { Button } from "../../../../../components/ui/button";
+import { Skeleton } from "../../../../../components/ui/skeleton";
 import ScoreModal from "../../../../../components/score/ScoreModal";
 import ConfirmDialog from "../../../../../components/ui/ConfirmDialog";
 import { computeStandings } from "../../../../../domain/tournament/standings";
@@ -10,6 +13,7 @@ import { createSemisFinalBracket } from "../../../../../domain/tournament/bracke
 import Bracket from "../../../../../components/bracket/Bracket";
 import { createClient } from "@/utils/supabase/client";
 import { completeTournamentAction, createFinalAction, createSemisAction } from "../../../../t/actions";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default function ManageTournament({ params }) {
   const { tournamentId } = React.use(params);
@@ -27,7 +31,7 @@ export default function ManageTournament({ params }) {
         setLoading(true);
         setError("");
         const supabase = createClient();
-        const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+        const spaceId = await getActiveSpaceId();
         // Determine admin
         const { data: userRes } = await supabase.auth.getUser();
         const user = userRes?.user;
@@ -243,19 +247,13 @@ export default function ManageTournament({ params }) {
 
   async function handleGenerateSemis() {
     const res = await createSemisAction({ tournamentId });
-    if (res?.error) {
-      alert(res.error);
-      return;
-    }
+    if (res?.error) return toast.error(res.error);
     setBracketRefresh((x) => x + 1);
   }
 
   async function handleGenerateFinal() {
     const res = await createFinalAction({ tournamentId });
-    if (res?.error) {
-      alert(res.error);
-      return;
-    }
+    if (res?.error) return toast.error(res.error);
     setBracketRefresh((x) => x + 1);
   }
 
@@ -330,9 +328,16 @@ export default function ManageTournament({ params }) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {groups.map((_, gi) => (
-                <div key={gi}>
+            <div className="space-y-6">
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              ) : groups.map((_, gi) => (
+                <div key={gi} className="space-y-2">
                   <div className="mb-2 text-sm font-semibold">Group {String.fromCharCode(65 + gi)}</div>
                   <ul className="space-y-2 text-sm">
                     {matches
@@ -363,56 +368,59 @@ export default function ManageTournament({ params }) {
               <div className="font-semibold">Standings</div>
               {tournament?.status !== "completed" && (
                 <div className="flex items-center gap-2 text-xs text-foreground/60">
-                  <span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-accent/60" />
+                  <span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-brand/60" />
                   Top 2 qualify
                 </div>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {standingsByGroup.map((standings, gi) => (
+            <div className="space-y-4">
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              ) : standingsByGroup.map((standings, gi) => (
                 <div key={gi} className="rounded-md border border-black/10">
                   <div className="border-b bg-black/5 px-4 py-2 text-sm font-semibold">Group {String.fromCharCode(65 + gi)}</div>
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="text-foreground/60">
-                        <th className="px-3 py-2">#</th>
-                        <th className="px-3 py-2">Entry</th>
-                        <th className="px-3 py-2">GW</th>
-                        <th className="px-3 py-2">GL</th>
-                        <th className="px-3 py-2">GD</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow className="text-foreground/60">
+                        <TableHead className="px-3 py-2">#</TableHead>
+                        <TableHead className="px-3 py-2">Entry</TableHead>
+                        <TableHead className="px-3 py-2">GW</TableHead>
+                        <TableHead className="px-3 py-2">GL</TableHead>
+                        <TableHead className="px-3 py-2">GD</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {standings.map((s) => {
                         const isQualifier = s.rank <= 2;
                         return (
-                          <tr
+                          <TableRow
                             key={s.entryId}
-                            className={
-                              isQualifier
-                                ? "bg-accent/10 text-foreground"
-                                : ""
-                            }
+                            className={isQualifier ? "bg-brand/10 text-foreground" : ""}
                           >
-                            <td className="px-3 py-2">
+                            <TableCell className="px-3 py-2">
                               <div className="flex items-center gap-2">
                                 <span>{s.rank}</span>
                                 {isQualifier && (
-                                  <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">Q</span>
+                                  <span className="rounded-sm bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">Q</span>
                                 )}
                               </div>
-                            </td>
-                            <td className="px-3 py-2">{s.entry.name}</td>
-                            <td className="px-3 py-2">{s.gamesWon}</td>
-                            <td className="px-3 py-2">{s.gamesLost}</td>
-                            <td className="px-3 py-2">{s.gameDiff}</td>
-                          </tr>
+                            </TableCell>
+                            <TableCell className="px-3 py-2">{s.entry.name}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gamesWon}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gamesLost}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gameDiff}</TableCell>
+                          </TableRow>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               ))}
             </div>
@@ -482,8 +490,8 @@ export default function ManageTournament({ params }) {
                     ? final.slots[0].participant
                     : final.slots[1].participant;
                 return (
-                  <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 p-3 text-sm">
-                    <div className="font-semibold text-accent">Winner</div>
+                  <div className="mt-4 rounded-md border border-brand/40 bg-brand/10 p-3 text-sm">
+                    <div className="font-semibold text-brand">Winner</div>
                     <div>{winner?.name}</div>
                   </div>
                 );

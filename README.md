@@ -6,6 +6,9 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 - Next.js App Router (15) + React 19
 - Tailwind CSS v4
 - Supabase backend (schema, indexes, RLS). Drafts and launches are Supabase-only (no localStorage).
+- shadcn/ui (locally generated components) on Radix primitives
+- lucide-react for icons
+- Sonner (via shadcn) for toasts
 
 ### Project Structure (high level)
 - `app/layout.js` – root layout with no sidebar
@@ -39,12 +42,31 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 - Launch: inserts `tournaments`, `entries`, and group-stage `matches`.
 
 ### Design System
-- Brand green: `#2f7a2a` (sidebar gradient uses darker → lighter)
-- Accent purple: `#4B306A` (buttons/lines)
+- Brand green: `#2f7a2a`
+- Neutral accents (no teal/purple). Tokens mapped to Tailwind v4 CSS variables
+  - `--primary` = brand green
+  - `--accent` = neutral (muted)
+  - Skeletons use `bg-muted` (neutral), not colored
+- Minimal transitions (150–200ms), cozy density
+- Icons: lucide-react
 - Font: Inter
 
 Sidebar active behavior:
 - Current page row tinted; hover shows a small white pill indicator to the left.
+
+### UI Component System (shadcn)
+- Button: `components/ui/button`
+- Card: `components/ui/card`
+- Dialog: `components/ui/dialog` (replaced legacy `components/ui/Modal.jsx`)
+- Table: `components/ui/table`
+- Select: `components/ui/select`
+- Skeleton: `components/ui/skeleton`
+- Toaster (Sonner): `components/ui/sonner` with `<Toaster />` in `app/layout.js`
+
+Notes
+- All imports updated to shadcn Button; legacy Button removed from usage
+- Confirm dialogs and score modals use shadcn Dialog
+- Inputs: stick to styled native `<input>` (shadcn Input removed from usage by design)
 
 ### Key Decisions and Route Groups
 - Root layout has no sidebar.
@@ -63,9 +85,29 @@ npm run dev
 - Wizard UX: simplified save flow (no autosave), explicit saves on step change and Exit; deterministic pairing; validations
 - Manage UX: badges for semis/final status, disable all edit actions when tournament is completed, non-admin read-only guard
 - Scoring safety: enforce DB-side locking so writes to `matches` are rejected when parent `tournaments.status = 'completed'` (RLS/trigger)
-- Past Events: recap page with formatted dates and read-only view; filters by date/name
 - Live page: shows name/date, Semis/Final bracket; redirects to recap when completed (no live links for completed events)
 - Testing: unit tests for `domain/` (entries, snake seeding, round-robin, standings); light E2E for create → manage → complete
+
+### UI polish in this phase
+- Global theme
+  - Removed teal accent; mapped `--accent` to neutral; brand green drives primary
+  - Added Sonner Toaster globally in `app/layout.js`
+- Navigation & actions
+  - Sidebar enhanced with lucide icons; consistent shadcn Buttons across pages
+- Dashboard
+  - Converted boxes to shadcn Cards and Buttons; added neutral skeleton when no active tournament
+- Roster
+  - Table migrated to shadcn Table; form uses native inputs with labels; added list skeleton while loading
+- Wizard
+  - Uses shadcn Select; native inputs; added page skeleton while hydrating
+- Manage
+  - Group tables use shadcn Table; stacked vertically; neutral skeletons while loading
+  - Replaced alerts with Sonner toasts for generation errors
+- Live
+  - Standings use shadcn Table; stacked vertically; added skeletons for header and groups
+- Past Events (Archive)
+  - Simplified copy; list in a Card without inner borders; neutral skeleton/empty state
+  - Content width aligned to `max-w-6xl` (also for Settings)
 
 ### Supabase Status & Docs
 - See `docs/Status Update & Next Steps - 2025-08-18.md` for the latest backend status and immediate next steps.

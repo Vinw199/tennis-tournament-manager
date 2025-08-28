@@ -1,7 +1,7 @@
 "use client";
 
-import Button from "./Button";
-import Modal from "./Modal";
+import { Button } from "./button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 
 export default function ConfirmDialog({
   open,
@@ -13,15 +13,20 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   return (
-    <Modal open={open} title={title} onClose={onCancel}>
-      <div className="space-y-4 text-sm">
-        {description && <p className="text-foreground/70">{description}</p>}
-        <div className="flex justify-end gap-2">
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel?.()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="text-sm text-foreground/70">
+          {description && <p>{description}</p>}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>
           <Button onClick={onConfirm}>{confirmLabel}</Button>
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

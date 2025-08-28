@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Button from "../../../components/ui/Button";
-import Modal from "../../../components/ui/Modal";
+import { Button } from "../../../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { createClient } from "@/utils/supabase/client";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+// Removed shadcn Input usage per design feedback
+import { Label } from "../../../components/ui/label";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 function PlayerForm({ initial, onSave }) {
   const [name, setName] = useState(initial?.name || "");
@@ -14,18 +19,18 @@ function PlayerForm({ initial, onSave }) {
   const valid = name.trim().length > 0 && Number(rank) > 0;
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <label className="text-sm">
-        <div className="mb-1 text-foreground/70">Name</div>
+      <div className="text-sm">
+        <Label className="mb-1 text-foreground/70 block">Name</Label>
         <input className="w-full rounded-md border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <label className="text-sm">
-        <div className="mb-1 text-foreground/70">Skill Rank</div>
+      </div>
+      <div className="text-sm">
+        <Label className="mb-1 text-foreground/70 block">Skill Rank</Label>
         <input type="number" min={1} className="w-full rounded-md border px-3 py-2" value={rank} onChange={(e) => setRank(e.target.value)} />
-      </label>
-      <label className="text-sm">
-        <div className="mb-1 text-foreground/70">Age</div>
+      </div>
+      <div className="text-sm">
+        <Label className="mb-1 text-foreground/70 block">Age</Label>
         <input type="number" min={0} className="w-full rounded-md border px-3 py-2" value={age} onChange={(e) => setAge(e.target.value)} />
-      </label>
+      </div>
       <label className="text-sm">
         <div className="mb-1 text-foreground/70">Gender</div>
         <select className="w-full rounded-md border px-3 py-2" value={gender} onChange={(e) => setGender(e.target.value)}>
@@ -35,10 +40,10 @@ function PlayerForm({ initial, onSave }) {
           <option>Other</option>
         </select>
       </label>
-      <label className="text-sm md:col-span-2">
-        <div className="mb-1 text-foreground/70">Profile Picture URL (optional)</div>
+      <div className="text-sm md:col-span-2">
+        <Label className="mb-1 text-foreground/70 block">Profile Picture URL (optional)</Label>
         <input className="w-full rounded-md border px-3 py-2" value={url} onChange={(e) => setUrl(e.target.value)} />
-      </label>
+      </div>
       <div className="md:col-span-2 flex justify-end">
         <Button onClick={() => {
           if (!valid) return;
@@ -61,12 +66,13 @@ function PlayerForm({ initial, onSave }) {
 
 export default function ClubRoster() {
   const [players, setPlayers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [show, setShow] = useState(false);
   const [editing, setEditing] = useState(null);
 
-  useEffect(() => {
+  useEffect(async () => {
     const supabase = createClient();
-    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    const spaceId = await getActiveSpaceId();
     async function load() {
       const { data, error } = await supabase
         .from("players")
@@ -75,7 +81,7 @@ export default function ClubRoster() {
         .order("name", { ascending: true });
       if (!error && data) setPlayers(data);
     }
-    load();
+    load().finally(() => setIsLoading(false));
   }, []);
 
   function openAdd() {
@@ -88,7 +94,7 @@ export default function ClubRoster() {
   }
   async function save(p) {
     const supabase = createClient();
-    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    const spaceId = await getActiveSpaceId();
     if (p.id) {
       const { error } = await supabase
         .from("players")
@@ -120,7 +126,7 @@ export default function ClubRoster() {
 
   async function remove(id) {
     const supabase = createClient();
-    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    const spaceId = await getActiveSpaceId();
     const { error } = await supabase
       .from("players")
       .delete()
@@ -142,45 +148,59 @@ export default function ClubRoster() {
         <Button onClick={openAdd}>Add Player</Button>
       </header>
 
-      <div className="overflow-hidden rounded-lg border border-black/10 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-black/5 text-foreground/70">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Skill Rank</th>
-              <th className="px-4 py-3">Age</th>
-              <th className="px-4 py-3">Gender</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.length === 0 ? (
-              <tr>
-                <td className="px-4 py-3 text-foreground/70" colSpan={5}>Empty state: add players to build your roster.</td>
-              </tr>
-            ) : (
-              players.map((p) => (
-                <tr key={p.id}>
-                  <td className="px-4 py-3">{p.name}</td>
-                  <td className="px-4 py-3">{p.default_skill_rank}</td>
-                  <td className="px-4 py-3">{p.age ?? "—"}</td>
-                  <td className="px-4 py-3">{p.gender ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button variant="secondary" onClick={() => openEdit(p)}>Edit</Button>
-                      <Button variant="secondary" onClick={() => remove(p.id)}>Delete</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="rounded-lg border bg-card text-card-foreground">
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-5 w-1/3" />
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="px-4 py-3">Name</TableHead>
+                <TableHead className="px-4 py-3">Skill Rank</TableHead>
+                <TableHead className="px-4 py-3">Age</TableHead>
+                <TableHead className="px-4 py-3">Gender</TableHead>
+                <TableHead className="px-4 py-3">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {players.length === 0 ? (
+                <TableRow>
+                  <TableCell className="px-4 py-3 text-foreground/70" colSpan={5}>Empty state: add players to build your roster.</TableCell>
+                </TableRow>
+              ) : (
+                players.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="px-4 py-3">{p.name}</TableCell>
+                    <TableCell className="px-4 py-3">{p.default_skill_rank}</TableCell>
+                    <TableCell className="px-4 py-3">{p.age ?? "—"}</TableCell>
+                    <TableCell className="px-4 py-3">{p.gender ?? "—"}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => openEdit(p)}>Edit</Button>
+                        <Button variant="secondary" onClick={() => remove(p.id)}>Delete</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
-      <Modal open={show} title={editing ? "Edit Player" : "Add Player"} onClose={() => setShow(false)}>
-        <PlayerForm initial={editing} onSave={save} />
-      </Modal>
+      <Dialog open={show} onOpenChange={(v) => !v && setShow(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Player" : "Add Player"}</DialogTitle>
+          </DialogHeader>
+          <PlayerForm initial={editing} onSave={save} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

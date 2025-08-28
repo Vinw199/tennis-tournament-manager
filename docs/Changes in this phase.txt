@@ -1,10 +1,2 @@
-1. Updated Past Events list to format dates clearly and link to a dedicated details page instead of the live URL.
-2. Added a read-only Past Event Details page that shows groups and the Semis/Final bracket.
-3. Live page now also shows the Semis/Final bracket when available. For a completed tournament, live link will redirect to recap page.
-4. Ideal page to view a past event: the new read-only details page at /past-events/[tournamentId] (not the live page). It presents the completed tournament cleanly without admin controls.
-5. Date format
-6. If a non logged in user opens a live link, they are redirected to the login page
-
 Improvements:
- - When there is an active tournament, we should not be able to click on new tournament
- - Live tournament can show the name and date of the tournament
+ - In knockout bracket, show score button only when entries are there

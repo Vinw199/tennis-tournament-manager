@@ -2,10 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader } from "../../../../components/ui/Card";
+import { Card, CardContent, CardHeader } from "../../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../components/ui/table";
+import { Skeleton } from "../../../../components/ui/skeleton";
 import { computeStandings } from "../../../../domain/tournament/standings";
 import { createClient } from "@/utils/supabase/client";
 import Bracket from "../../../../components/bracket/Bracket";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default function LiveTournamentView() {
   const { tournamentId } = useParams();
@@ -19,8 +22,9 @@ export default function LiveTournamentView() {
 
   useEffect(() => {
     (async () => {
+      setEntries([]); setMatches([]); setBracket(null); setStatus(null); setTournamentName(""); setTournamentDate("");
       const supabase = createClient();
-      const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+      const spaceId = await getActiveSpaceId();
       const [{ data: entries }, { data: matches }, userRes, { data: tRow }] = await Promise.all([
         supabase.from("entries").select("id,name").eq("tournament_id", tournamentId),
         supabase
@@ -130,12 +134,21 @@ export default function LiveTournamentView() {
   return (
     <div className="mx-auto max-w-3xl p-4">
       <header className="mb-4">
-        <h1 className="text-xl font-bold">{tournamentName || "Live Tournament"}</h1>
-        {tournamentDate && (
-          <div className="text-sm text-foreground/70">{new Date(tournamentDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+        {tournamentName ? (
+          <>
+            <h1 className="text-xl font-bold">{tournamentName}</h1>
+            {tournamentDate && (
+              <div className="text-sm text-foreground/70">{new Date(tournamentDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+            )}
+          </>
+        ) : (
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
         )}
         {status === "completed" && (
-          <div className="mt-1 inline-flex items-center rounded border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent">Completed</div>
+          <div className="mt-1 inline-flex items-center rounded border border-brand/40 bg-brand/10 px-2 py-0.5 text-xs text-brand">Completed</div>
         )}
         {isAdmin && (
           <a className="mt-2 block text-sm text-brand underline" href={`/t/${tournamentId}/manage`}>
@@ -151,34 +164,38 @@ export default function LiveTournamentView() {
           </CardHeader>
           <CardContent>
             {groupLabels.length === 0 ? (
-              <p className="text-sm text-foreground/70">No groups yet.</p>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+                <p className="text-sm text-foreground/70">No groups yet.</p>
+              </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-4">
                 {standingsByGroup.map((standings, gi) => (
                   <div key={gi} className="rounded-md border border-black/10">
                     <div className="border-b bg-black/5 px-4 py-2 text-sm font-semibold">{groupLabels[gi]}</div>
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="text-foreground/60">
-                          <th className="px-3 py-2">#</th>
-                          <th className="px-3 py-2">Entry</th>
-                          <th className="px-3 py-2">GW</th>
-                          <th className="px-3 py-2">GL</th>
-                          <th className="px-3 py-2">GD</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow className="text-foreground/60">
+                          <TableHead className="px-3 py-2">#</TableHead>
+                          <TableHead className="px-3 py-2">Entry</TableHead>
+                          <TableHead className="px-3 py-2">GW</TableHead>
+                          <TableHead className="px-3 py-2">GL</TableHead>
+                          <TableHead className="px-3 py-2">GD</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {standings.map((s) => (
-                          <tr key={s.entryId}>
-                            <td className="px-3 py-2">{s.rank}</td>
-                            <td className="px-3 py-2">{s.entry.name}</td>
-                            <td className="px-3 py-2">{s.gamesWon}</td>
-                            <td className="px-3 py-2">{s.gamesLost}</td>
-                            <td className="px-3 py-2">{s.gameDiff}</td>
-                          </tr>
+                          <TableRow key={s.entryId}>
+                            <TableCell className="px-3 py-2">{s.rank}</TableCell>
+                            <TableCell className="px-3 py-2">{s.entry.name}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gamesWon}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gamesLost}</TableCell>
+                            <TableCell className="px-3 py-2">{s.gameDiff}</TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 ))}
               </div>

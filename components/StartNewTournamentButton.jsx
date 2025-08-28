@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { clearWizardDraftInDbClient } from "../data/wizardDraft.client";
+import { PlusCircle } from "lucide-react";
+import { Button } from "./ui/button";
 
 export default function StartNewTournamentButton({ label = "Start New Tournament" }) {
   const router = useRouter();
@@ -18,13 +20,10 @@ export default function StartNewTournamentButton({ label = "Start New Tournament
   }
 
   return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm text-white shadow hover:opacity-95"
-      title="Start a new tournament and discard the existing draft"
-    >
-      {label}
-    </button>
+    <Button onClick={onClick} title="Start a new tournament and discard the existing draft">
+      <PlusCircle className="h-4 w-4" aria-hidden />
+      <span>{label}</span>
+    </Button>
   );
 }
 

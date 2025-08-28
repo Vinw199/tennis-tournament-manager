@@ -1,8 +1,9 @@
 import { createClient } from "@/utils/supabase/client";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export async function getWizardDraftFromDbClient() {
   const supabase = createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return null;
   const { data: userRes } = await supabase.auth.getUser();
   const user = userRes?.user;
@@ -21,7 +22,7 @@ export async function getWizardDraftFromDbClient() {
 
 export async function upsertWizardDraftInDbClient(draft) {
   const supabase = createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return { error: "Missing space id" };
   const { data: userRes } = await supabase.auth.getUser();
   const user = userRes?.user;
@@ -35,7 +36,7 @@ export async function upsertWizardDraftInDbClient(draft) {
 
 export async function clearWizardDraftInDbClient() {
   const supabase = createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return { error: "Missing space id" };
   const { data: userRes } = await supabase.auth.getUser();
   const user = userRes?.user;

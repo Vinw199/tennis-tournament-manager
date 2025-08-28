@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Button from "../../../../components/ui/Button";
-import { Card, CardContent, CardHeader } from "../../../../components/ui/Card";
+import { Button } from "../../../../components/ui/button";
+import { Card, CardContent, CardHeader } from "../../../../components/ui/card";
 import Stepper from "../../../../components/ui/Stepper";
+// Removed shadcn Input usage per design feedback
+import { Label } from "../../../../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { launchTournamentAction } from "../../../(wizard)/actions";
 import { getWizardDraftFromDbClient, upsertWizardDraftInDbClient, clearWizardDraftInDbClient } from "../../../../data/wizardDraft.client";
@@ -14,6 +17,7 @@ import {
   generateRoundRobinMatchesForGroup,
   generateBalancedDoublesEntriesFromPools,
 } from "../../../../domain/tournament";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 const DEFAULT_GROUPS = 2;
 
@@ -40,7 +44,7 @@ export default function NewTournamentWizard() {
     (async () => {
       const { createClient } = await import("@/utils/supabase/client");
       const supabase = createClient();
-      const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+      const spaceId = await getActiveSpaceId();
       if (!spaceId) return;
       const { data } = await supabase
         .from("players")
@@ -205,8 +209,20 @@ export default function NewTournamentWizard() {
   }
 
   if (isHydratingDraft || isLoadingRoster) {
+    const { Skeleton } = require("../../../../components/ui/skeleton");
     return (
-      <div className="mx-auto max-w-5xl p-6 text-sm text-foreground/70">Loading draft and roster…</div>
+      <div className="mx-auto max-w-5xl p-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl font-bold">New Tournament</div>
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <Skeleton className="h-8 w-full" />
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -222,72 +238,49 @@ export default function NewTournamentWizard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Tournament Name</div>
-                <input
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.name}
-                  onChange={(e) => setDetails({ ...details, name: e.target.value })}
-                />
-                {nameError && (
-                  <div className="mt-1 text-xs text-red-600">Name is required.</div>
-                )}
-              </label>
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Date</div>
-                <input
-                  type="date"
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.date}
-                  onChange={(e) => setDetails({ ...details, date: e.target.value })}
-                />
-              </label>
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Entry Fee per Player</div>
-                <input
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.entryFee}
-                  onChange={(e) => setDetails({ ...details, entryFee: e.target.value })}
-                />
-              </label>
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Prize Money Details</div>
-                <input
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.prize}
-                  onChange={(e) => setDetails({ ...details, prize: e.target.value })}
-                />
-              </label>
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Format</div>
-                <select
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.format}
-                  onChange={(e) => setDetails({ ...details, format: e.target.value })}
-                >
-                  <option>League + Knockout</option>
-                </select>
-              </label>
-              <label className="text-sm">
-                <div className="mb-1 text-foreground/70">Knockout Stage</div>
-                <select
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.knockoutStage}
-                  onChange={(e) => setDetails({ ...details, knockoutStage: e.target.value })}
-                >
-                  <option>Semi-Finals</option>
-                </select>
-              </label>
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 text-foreground/70">League Match Format</div>
-                <input
-                  className="w-full rounded-md border px-3 py-2"
-                  value={details.leagueMatchFormat}
-                  onChange={(e) =>
-                    setDetails({ ...details, leagueMatchFormat: e.target.value })
-                  }
-                />
-              </label>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Tournament Name</Label>
+                <input className="w-full rounded-md border px-3 py-2" value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} />
+                {nameError && <div className="mt-1 text-xs text-red-600">Name is required.</div>}
+              </div>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Date</Label>
+                <input type="date" className="w-full rounded-md border px-3 py-2" value={details.date} onChange={(e) => setDetails({ ...details, date: e.target.value })} />
+              </div>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Entry Fee per Player</Label>
+                <input className="w-full rounded-md border px-3 py-2" value={details.entryFee} onChange={(e) => setDetails({ ...details, entryFee: e.target.value })} />
+              </div>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Prize Money Details</Label>
+                <input className="w-full rounded-md border px-3 py-2" value={details.prize} onChange={(e) => setDetails({ ...details, prize: e.target.value })} />
+              </div>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Format</Label>
+                <Select value={details.format} onValueChange={(v) => setDetails({ ...details, format: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="League + Knockout">League + Knockout</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm">
+                <Label className="mb-1 text-foreground/70 block">Knockout Stage</Label>
+                <Select value={details.knockoutStage} onValueChange={(v) => setDetails({ ...details, knockoutStage: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semi-Finals">Semi-Finals</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm md:col-span-2">
+                <Label className="mb-1 text-foreground/70 block">League Match Format</Label>
+                <input className="w-full rounded-md border px-3 py-2" value={details.leagueMatchFormat} onChange={(e) => setDetails({ ...details, leagueMatchFormat: e.target.value })} />
+              </div>
             </div>
             <div className="mt-5 flex justify-end gap-3">
               <Button onClick={() => goToStep(2)} disabled={!canGoToStep2}>

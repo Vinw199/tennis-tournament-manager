@@ -1,0 +1,61 @@
+Goals
+- Multi-space (tenants) with create, edit, delete
+- Automatic onboarding for new users
+- No env fallback; app always operates in an explicit active space
+
+Data model & RLS
+- Keep existing tables and helpers: spaces, space_members, players, tournaments, entries, entry_players, matches, wizard_drafts; get_user_spaces(), get_user_admin_spaces()
+- Add policy: allow INSERT into spaces when created_by = auth.uid() (bootstrap)
+- Add trigger: AFTER INSERT on spaces -> insert (space_id, created_by, 'admin') into space_members
+
+Active space selection
+- Cookie key: sb-space-id
+- Remove NEXT_PUBLIC_SPACE_ID fallback; all queries require a resolved active space
+- Validate cookie: must be in get_user_spaces(); otherwise replace with default
+
+Auth flows
+- Signup
+  - Create default space: name "My Club", created_by = auth.uid()
+  - Trigger adds creator as admin
+  - Set sb-space-id to the new space immediately
+- Login
+  - 0-space state won’t occur (delete guard below)
+  - If cookie invalid/missing: pick first from get_user_spaces() and set cookie
+
+Delete guard (prevent zero-space state)
+- UI: disable delete when user’s membership count == 1
+- Server action: block delete if requester’s membership count <= 1
+- On deleting the active space: switch cookie to another available space (first membership)
+
+Server actions (no new libs)
+- listSpaces(): spaces where user is member (id, name, role)
+- createSpace(name): insert; returns id; sets sb-space-id
+- renameSpace(spaceId, name): admin-only
+- deleteSpace(spaceId): admin-only; enforce delete guard; FK cascade
+- setActiveSpace(spaceId): validate membership, set cookie
+- getActiveSpaceId(req): read cookie; validate; if invalid -> default
+
+UI updates (incremental)
+- Settings → Spaces
+  - List spaces (name, role), create, rename/delete (admins only); delete disabled if last space
+- Sidebar header
+  - Minimal space switcher: show current; switch; write sb-space-id
+
+Code changes
+- Replace process.env.NEXT_PUBLIC_SPACE_ID with getActiveSpaceId() in all queries
+- Add server utils for reading/writing sb-space-id
+- Redirect to select/create space if active space cannot be resolved
+
+Migrations
+- Spaces INSERT policy for creator bootstrap
+- AFTER INSERT trigger to add creator as admin in space_members
+
+Testing checklist
+- Signup creates space, sets cookie, RLS access OK
+- Login resolves/keeps valid active space
+- Switching spaces scopes roster/tournaments/wizard/live
+- Rename works (admin only)
+- Delete blocked when last membership; allowed otherwise; cookie re-pointed
+- No code path reads NEXT_PUBLIC_SPACE_ID
+
+

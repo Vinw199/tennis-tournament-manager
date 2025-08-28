@@ -1,6 +1,7 @@
 import Sidebar from "../../components/Sidebar";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default async function WithSidebarLayout({ children }) {
   const supabase = await createClient();
@@ -10,7 +11,8 @@ export default async function WithSidebarLayout({ children }) {
   if (!user) {
     redirect("/login");
   }
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
+
   let spaceName = "";
   if (spaceId) {
     const { data } = await supabase

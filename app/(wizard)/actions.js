@@ -1,10 +1,11 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export async function launchTournamentAction(payload) {
   const supabase = await createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) {
     return { error: "Missing space id" };
   }
@@ -52,7 +53,7 @@ export async function launchTournamentAction(payload) {
 
 export async function getWizardDraftAction() {
   const supabase = await createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return null;
   const {
     data: { user },
@@ -71,7 +72,7 @@ export async function getWizardDraftAction() {
 
 export async function upsertWizardDraftAction(draft) {
   const supabase = await createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return { error: "Missing space id" };
   const {
     data: { user },
@@ -86,7 +87,7 @@ export async function upsertWizardDraftAction(draft) {
 
 export async function clearWizardDraftAction() {
   const supabase = await createClient();
-  const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+  const spaceId = await getActiveSpaceId();
   if (!spaceId) return { error: "Missing space id" };
   const {
     data: { user },

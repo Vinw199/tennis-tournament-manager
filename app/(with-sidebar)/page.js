@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import StartNewTournamentButton from "../../components/StartNewTournamentButton";
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { Button as UIButton } from "../../components/ui/button";
+import { Skeleton } from "../../components/ui/skeleton";
+import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -10,7 +14,7 @@ export default async function Dashboard() {
   let hasDraft = false;
   let activeTournament = null;
   if (user) {
-    const spaceId = process.env.NEXT_PUBLIC_SPACE_ID;
+    const spaceId = await getActiveSpaceId();
     if (spaceId) {
       const { data } = await supabase
         .from("wizard_drafts")
@@ -40,71 +44,78 @@ export default async function Dashboard() {
         <div className="flex items-center gap-2">
           {hasDraft ? (
             <>
-              <Link
-                href="/tournaments/new"
-                className="inline-flex items-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2 text-sm shadow hover:bg-black/5"
-              >
-                Continue draft
-              </Link>
+              <UIButton asChild variant="outline">
+                <Link href="/tournaments/new">Continue draft</Link>
+              </UIButton>
               <StartNewTournamentButton label="Start New Tournament" />
             </>
           ) : (
-            <Link
-              href="/tournaments/new"
-              className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-white shadow hover:opacity-95"
-            >
-              Create New Tournament
-            </Link>
+            <UIButton asChild>
+              <Link href="/tournaments/new">Create New Tournament</Link>
+            </UIButton>
           )}
         </div>
       </header>
 
       <section className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg border border-black/10 bg-white p-5">
-          <h2 className="mb-2 text-lg font-semibold">Active Tournament</h2>
-          {activeTournament ? (
-            <div className="flex items-center justify-between text-sm">
-              <div>
-                <div className="font-semibold">{activeTournament.name}</div>
-                <div className="text-foreground/60">
-                  {activeTournament.date
-                    ? new Date(activeTournament.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                    : ""}
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Active Tournament</h2>
+          </CardHeader>
+          <CardContent>
+            {activeTournament ? (
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-semibold">{activeTournament.name}</div>
+                  <div className="text-foreground/60">
+                    {activeTournament.date
+                      ? new Date(activeTournament.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                      : ""}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UIButton asChild variant="outline" size="sm">
+                    <Link href={`/t/${activeTournament.id}/manage`}>Manage</Link>
+                  </UIButton>
+                  <UIButton asChild variant="outline" size="sm">
+                    <Link href={`/t/${activeTournament.id}/live`}>Live</Link>
+                  </UIButton>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link className="rounded-md border px-3 py-1" href={`/t/${activeTournament.id}/manage`}>Manage</Link>
-                <Link className="rounded-md border px-3 py-1" href={`/t/${activeTournament.id}/live`}>Live</Link>
+            ) : (
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-1/2" />
+                <p className="text-sm text-foreground/70">No active tournament. Click &quot;Create New Tournament&quot; to start.</p>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-foreground/70">
-              No active tournament. Click &quot;Create New Tournament&quot; to start.
-            </p>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg border border-black/10 bg-white p-5">
-          <h2 className="mb-2 text-lg font-semibold">Quick Links</h2>
-          <ul className="text-sm leading-7">
-            <li>
-              <Link className="text-brand underline" href="/roster">
-                Manage Club Roster
-              </Link>
-            </li>
-            <li>
-              <Link className="text-brand underline" href="/past-events">
-                View Past Events
-              </Link>
-            </li>
-            <li>
-              <Link className="text-brand underline" href="/settings">
-                Settings
-              </Link>
-            </li>
-          </ul>
-          {/* Buttons moved to header to avoid duplication */}
-        </div>
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Quick Links</h2>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm leading-7">
+              <li>
+                <Link className="text-brand underline" href="/roster">
+                  Manage Club Roster
+                </Link>
+              </li>
+              <li>
+                <Link className="text-brand underline" href="/past-events">
+                  View Past Events
+                </Link>
+              </li>
+              <li>
+                <Link className="text-brand underline" href="/settings">
+                  Settings
+                </Link>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

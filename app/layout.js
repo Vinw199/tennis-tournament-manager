@@ -1,6 +1,6 @@
 import { Inter } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -18,6 +18,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
         <div className="min-h-screen bg-background text-foreground">{children}</div>
+        <Toaster richColors closeButton position="top-center" />
       </body>
     </html>
   );
