@@ -64,7 +64,7 @@ export async function signup(prevState, formData) {
 
   // On success, the user is now logged in. Redirect them to the main page.
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/onboarding')
 }
 
 export async function signout() {

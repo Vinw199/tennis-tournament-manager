@@ -1,10 +1,15 @@
+// This is the dashboard page
+// This is a protected route, protected from users who don't have a space
+// If user doesn't have a space, they are redirected to the onboarding page
+
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import StartNewTournamentButton from "../../components/StartNewTournamentButton";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { Button as UIButton } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
-import { getActiveSpaceId } from "@/lib/supabase/spaces";
+import { getActiveSpaceId, listSpaces } from "@/lib/supabase/spaces";
+import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -13,6 +18,12 @@ export default async function Dashboard() {
   } = await supabase.auth.getUser();
   let hasDraft = false;
   let activeTournament = null;
+
+  const spaces = await listSpaces();
+  if (spaces.length === 0) {
+    redirect("/onboarding");
+  }
+
   if (user) {
     const spaceId = await getActiveSpaceId();
     if (spaceId) {
@@ -37,6 +48,7 @@ export default async function Dashboard() {
       if (t) activeTournament = t;
     }
   }
+
   return (
     <div className="mx-auto max-w-6xl">
       <header className="mb-6 flex items-center justify-between">
