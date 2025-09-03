@@ -1,17 +1,5 @@
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  listSpaces,
-  createSpace,
-  renameSpace,
-  deleteSpace,
-  getActiveSpaceId,
-  setActiveSpace,
-} from '@/lib/supabase/spaces'
-
-// import SettingsForm from '@/components/settings/SettingsForm'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from '@/components/ui/card'
+import { listSpaces, getActiveSpaceId } from '@/lib/supabase/spaces'
 import { CreateSpaceForm } from '@/components/settings/CreateSpaceForm'
 import { SpaceList } from '@/components/settings/SpaceList'
 
@@ -31,21 +19,6 @@ export default async function SpacesSettingsPage() {
           </p>
         </div>
       </header>
-
-
-
-      {/* Create New Space Card */}
-      {/* <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Create a New Space</CardTitle>
-          <CardDescription>
-            Create a new, isolated space for a different club or group.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SettingsForm />
-        </CardContent>
-      </Card> */}
 
       {/* Create New Space Card */}
       <Card>
@@ -75,10 +48,6 @@ export default async function SpacesSettingsPage() {
         </CardContent>
       </Card>
       
-      {/* <div>
-        <h2 className="mb-4 text-2xl font-bold tracking-tight">Your Spaces</h2>
-        <SpaceList spaces={spaces} activeSpaceId={activeSpaceId} />
-      </div> */}
     </div>
   )
 }

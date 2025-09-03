@@ -37,6 +37,7 @@ function DeleteSubmitButton({ isLastSpace }) {
                 type="submit"
                 variant="destructive"
                 disabled={pending || isLastSpace}
+                className='cursor-pointer'
             >
                 {pending ? (
                     <>
@@ -76,7 +77,7 @@ export function SpaceListItem({ space, isActive, isLastSpace }) {
                         {!isActive && (
                             <form action={setActiveSpace} className="m-0">
                                 <input type="hidden" name="spaceId" value={space.id} />
-                                <Button type="submit" variant="outline" size="sm">
+                                <Button type="submit" variant="outline" size="sm" className='cursor-pointer'>
                                     Set as Active
                                 </Button>
                             </form>
@@ -85,18 +86,18 @@ export function SpaceListItem({ space, isActive, isLastSpace }) {
                         {isAdmin && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <Button variant="ghost" className="h-8 w-8 p-0 cursor-pointer">
                                         <span className="sr-only">Open menu</span>
                                         <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setIsRenameModalOpen(true)}>
+                                    <DropdownMenuItem onClick={() => setIsRenameModalOpen(true)} className='cursor-pointer'>
                                         Rename
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-600"
+                                        className="text-red-600 focus:text-red-600 cursor-pointer"
                                         onClick={() => setIsDeleteConfirmOpen(true)}
                                     >
                                         Delete
@@ -108,7 +109,6 @@ export function SpaceListItem({ space, isActive, isLastSpace }) {
                 </TableCell>
             </TableRow>
 
-            {/* RENDER MODALS & DIALOGS BENEATH THE ROW */}
             {isAdmin && (
                 <>
                     {/* 1. The Rename Modal */}
@@ -132,7 +132,7 @@ export function SpaceListItem({ space, isActive, isLastSpace }) {
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
                                 <form action={deleteAction} className="m-0">
                                     <input type="hidden" name="spaceId" value={space.id} />
                                     <DeleteSubmitButton isLastSpace={isLastSpace} />

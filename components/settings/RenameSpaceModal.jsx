@@ -15,7 +15,7 @@ const initialState = { message: null, isSuccess: false };
 function RenameSubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending} className='cursor-pointer'>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       Save changes
     </Button>
@@ -60,7 +60,7 @@ export function RenameSpaceModal({ space, isOpen, onOpenChange }) {
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="ghost">
+              <Button type="button" variant="ghost" className='cursor-pointer'>
                 Cancel
               </Button>
             </DialogClose>

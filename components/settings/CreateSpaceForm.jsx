@@ -31,7 +31,7 @@ export function CreateSpaceForm() {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-36">
+    <Button type="submit" disabled={pending} className="w-36 cursor-pointer">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

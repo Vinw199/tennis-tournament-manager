@@ -2,9 +2,10 @@
 
 import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
-import { createSpace } from "@/lib/supabase/spaces"
+import { handleOnboarding } from "@/lib/supabase/spaces"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 
 const initialState = {
@@ -12,8 +13,9 @@ const initialState = {
 }
 
 // This component handles all the interactive parts.
+// replace createSpace with handleOnboarding
 export function OnboardingForm() {
-    const [state, formAction] = useActionState(createSpace, initialState)
+    const [state, formAction] = useActionState(handleOnboarding, initialState)
 
     return (
         <form action={formAction} className="flex flex-col gap-4 w-full max-w-md">
@@ -29,8 +31,14 @@ function FormFields() {
     const { pending } = useFormStatus()
     return (
         <fieldset disabled={pending} className="space-y-4">
+            <Label htmlFor="userName" className="text-sm text-foreground/70">Your Name</Label>
             <Input
-                type="text" name="name" placeholder="e.g., Jorhat Sunday Socials" required
+                type="text" name="userName" placeholder="e.g., John Doe" required
+                className="bg-white/10 border border-white/10 text-white placeholder:text-neutral-300 focus-visible:ring-yellow-300 focus-visible:border-yellow-300"
+            />
+            <Label htmlFor="spaceName" className="text-sm text-foreground/70">Space Name</Label>
+            <Input
+                type="text" name="spaceName" placeholder="e.g., Jorhat Sunday Socials" required
                 className="bg-white/10 border border-white/10 text-white placeholder:text-neutral-300 focus-visible:ring-yellow-300 focus-visible:border-yellow-300"
             />
             <Button type="submit" className="w-full cursor-pointer bg-[#DFFF00] text-gray-900 hover:bg-[#DFFF00]/80">
