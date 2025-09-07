@@ -1,10 +1,9 @@
-import { signup } from '../actions';
 import SignupForm from './SignupForm';
 
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 export default async function SignupPage({ searchParams }) {
-  const { error } = await searchParams;
+  const { token } = await searchParams;
 
   return (
     <Card className="py-8 px-1">
@@ -20,7 +19,7 @@ export default async function SignupPage({ searchParams }) {
         </div>
       </CardHeader>
       <CardContent>
-        <SignupForm signup={signup} error={error} />
+        <SignupForm token={token} />
       </CardContent>
     </Card>
   );

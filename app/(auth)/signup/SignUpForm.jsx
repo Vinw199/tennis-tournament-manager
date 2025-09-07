@@ -11,14 +11,14 @@ const initialState = {
   message: null,
 }
 
-export default function SignupForm() {
+export default function SignupForm({ token }) {
 
   const [state, formAction] = useActionState(signup, initialState);
 
   return (
     <form className="space-y-4" action={formAction}>
 
-      <SignupFormFields />
+      <SignupFormFields token={token} />
 
       {/* Error Message Display */}
       {state.error && (<p className="mt-4 text-center text-sm text-red-600">{state.error}</p>)}

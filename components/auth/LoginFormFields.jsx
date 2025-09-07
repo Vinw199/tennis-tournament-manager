@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/Input'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import SubmitButton from '@/components/auth/SubmitButton'
 import { useFormStatus } from 'react-dom'
 
-const LoginFormFields = () => {
+const LoginFormFields = ({ token }) => {
 
     const { pending } = useFormStatus();
-    
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +18,10 @@ const LoginFormFields = () => {
 
     return (
         <fieldset disabled={pending} className="space-y-4">
+
+            {/* Hidden input field for the invite token */}
+            {token && <input type="hidden" name="token" value={token} />}
+
             {/* Email Input */}
             <div className="space-y-1">
                 <Label htmlFor="email" className="text-sm text-foreground/70">Email</Label>
@@ -64,7 +68,7 @@ const LoginFormFields = () => {
                     Continue
                 </SubmitButton>
             </div>
-            
+
         </fieldset>
     )
 }

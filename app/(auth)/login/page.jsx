@@ -1,12 +1,11 @@
-// This is your updated page file, e.g., app/login/page.jsx
+// app/login/page.jsx
 
-import { login } from '../actions';
 import LoginForm from './LoginForm';
 
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 export default async function LoginPage({ searchParams }) {
-  const { error, message } = await searchParams;
+  const { token } = await searchParams;
 
   return (
     <Card className="py-8 px-1">
@@ -22,7 +21,7 @@ export default async function LoginPage({ searchParams }) {
         </div>
       </CardHeader>
       <CardContent>
-        <LoginForm login={login} error={error} message={message} />
+        <LoginForm token={token} />
       </CardContent>
     </Card>
   );

@@ -12,7 +12,7 @@ const initialState = {
     message: null,
 }
 
-export default function LoginForm() {
+export default function LoginForm({ token }) {
 
     // useFormState hook
     const [state, formAction] = useActionState(login, initialState);
@@ -20,7 +20,7 @@ export default function LoginForm() {
     return (
         <form className="space-y-4" action={formAction}>
 
-            <LoginFormFields />           
+            <LoginFormFields token={token} />           
 
             {/* Message/Error Display */}
             {state.error && (<p className="mt-4 text-center text-sm text-red-600">{state.error}</p>)}

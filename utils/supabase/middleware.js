@@ -45,6 +45,7 @@ export async function updateSession(request) {
         !path.startsWith('/signup') &&
         !path.startsWith('/auth') &&
         !path.startsWith('/error') &&
+        !path.startsWith('/accept-invite') &&
         !isPublicLiveView
     ) {
         // no user, potentially respond by redirecting the user to the login page

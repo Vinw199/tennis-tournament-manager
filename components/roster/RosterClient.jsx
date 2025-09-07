@@ -4,20 +4,19 @@
 
 import { useState, useEffect, useActionState, useCallback } from 'react';
 import { useFormStatus } from 'react-dom';
-import { deletePlayer } from '@/app/(with-sidebar)/roster/actions';
+import { deletePlayer, resendInvite, revokeInvite } from '@/app/(with-sidebar)/roster/actions';
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from 'lucide-react';
 
+import { PlayerRow } from './PlayerRow';
 import { RosterEmptyState } from './RosterEmptyState';
 import { PlayerForm } from './PlayerForm';
+
 
 export function RosterClient({ initialPlayers, spaceId }) {
     const [showDialog, setShowDialog] = useState(false);
@@ -64,60 +63,27 @@ export function RosterClient({ initialPlayers, spaceId }) {
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead className="px-4 py-3">Name</TableHead>
+                            <TableHead className="w-[300px] px-4 py-3">Name</TableHead>
                             <TableHead className="px-4 py-3">Skill Rank</TableHead>
                             <TableHead className="px-4 py-3">Age</TableHead>
                             <TableHead className="px-4 py-3">Gender</TableHead>
-                            <TableHead className="px-4 py-3">Actions</TableHead>
+                            <TableHead className="px-4 py-3">Status</TableHead>
+                            <TableHead className="px-4 py-3 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {initialPlayers.length === 0 ? (
                             <TableRow>
-                                <TableCell className="px-4 py-3" colSpan={5}>
+                                <TableCell className="px-4 py-3" colSpan={6}>
                                     <RosterEmptyState onAddPlayer={openAdd} />
                                 </TableCell>
                             </TableRow>
 
                         ) : (
-                            initialPlayers.map((p) => (
-                                <TableRow key={p.id}>
-                                    <TableCell className="font-medium px-4 flex items-center gap-3">
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={p.profile_picture_url} alt={p.name} />
-                                            <AvatarFallback>
-                                                {p.name.substring(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span>{p.name}</span>
-                                    </TableCell>
-                                    <TableCell className="px-4">{p.default_skill_rank}</TableCell>
-                                    <TableCell className="px-4">{p.age ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                                    <TableCell className="px-4">{p.gender ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                                    <TableCell className="px-4">
-                                        {/* Actions Dropdown */}
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 cursor-pointer">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => openEdit(p)} className='cursor-pointer'>
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer"
-                                                    onClick={() => { setPlayerToDelete(p); setIsAlertDialogOpen(true); }} // This just opens the dialog
-                                                >
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                            initialPlayers.map((p) => <PlayerRow
+                                key={p.id} player={p} spaceId={spaceId}
+                                onEdit={openEdit} onDelete={(player) => { setPlayerToDelete(player); setIsAlertDialogOpen(true); }}
+                            />)
                         )}
                     </TableBody>
                 </Table>
@@ -149,6 +115,7 @@ export function RosterClient({ initialPlayers, spaceId }) {
                         <AlertDialogCancel className='cursor-pointer'>Cancel</AlertDialogCancel>
                         <form action={deleteAction}>
                             <input type="hidden" name="id" value={playerToDelete?.id ?? ''} />
+                            <input type="hidden" name="spaceId" value={spaceId} />
                             <DeleteSubmitButton />
                         </form>
                     </AlertDialogFooter>

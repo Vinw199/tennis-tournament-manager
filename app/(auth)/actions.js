@@ -23,6 +23,14 @@ export async function login(prevState, formData) {
     return { error: error.message };
   }
 
+  // get the invite token
+  const token = formData.get('token');
+
+  // If an invite token exists, redirect back to the accept-invite page 
+  if (token) {
+    redirect(`/accept-invite/${token}`);
+  }
+
   // Get the correct active space ID (either from a valid cookie or the default).
   const activeSpaceId = await getActiveSpaceId()
 
@@ -51,18 +59,15 @@ export async function signup(prevState, formData) {
     return { error: error.message }
   }
 
-  // const newSpaceFormData = new FormData()
-  // newSpaceFormData.append('name', 'My Club')
-  // const { error: createSpaceError } = await createSpace(newSpaceFormData)
+  // get the invite token
+  const token = formData.get('token');
 
-  // It automatically creates the user's first default space.
-  // const { error: createSpaceError } = await createSpace('My Club')
+  // If an invite token exists, redirect back to the accept-invite page 
+  if (token) {
+    redirect(`/accept-invite/${token}`);
+  }
 
-  // if (createSpaceError) {
-  //   return { error: createSpaceError.message }
-  // }
-
-  // On success, the user is now logged in. Redirect them to the main page.
+  // On success, if no invite token exists, redirect them to the main page.
   revalidatePath('/', 'layout')
   redirect('/onboarding')
 }

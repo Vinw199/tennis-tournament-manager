@@ -20,6 +20,8 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 - `app/(wizard)/tournaments/new/` – Tournament creation wizard (no sidebar)
 - `app/(with-sidebar)/t/[tournamentId]/manage/` – Manage tournament (with sidebar)
 - `app/t/[tournamentId]/live/` – Public read-only live page (no sidebar)
+- `app/accept-invite/[token]/page.js` – Invitation acceptance (public read-only via RLS for pending invites)
+- `app/onboarding/page.jsx` – First-time setup for new users (create profile name and space)
 
 ### Current MVP Features
 - Roster: add/edit/delete players (name, rank, age, gender, optional picture URL)
@@ -36,10 +38,35 @@ Modern tournament manager for club events with clean admin tools and a mobile-fi
 - Live:
   - Read-only standings and match checklist; refresh to see latest (realtime planned)
 
+### Onboarding (First-Time Setup)
+- Route: `/onboarding`.
+- After signup without an invite, users are redirected here to enter their name and create their first space.
+- Guard: If the user already belongs to at least one space, `/onboarding` redirects to `/`.
+- Form: `components/onboarding/OnboardingForm.jsx` posts to a server action that:
+  - Updates `auth.users` display_name to the entered name.
+  - Inserts a row into `spaces` and relies on a DB trigger to add the creator to `space_members`.
+  - Creates a `players` row for the user and links it via `players.user_id`.
+  - Redirects to `/` on success.
+
 ### Data Persistence
 - Supabase tables: `spaces`, `space_members`, `players`, `tournaments`, `entries`, `matches`, `wizard_drafts`.
 - Drafts: `wizard_drafts` per `(space_id, user_id)`; autosave debounced.
 - Launch: inserts `tournaments`, `entries`, and group-stage `matches`.
+
+### Invitation & Collaboration
+- Admins invite real users to claim specific roster players.
+- Route: `/accept-invite/[token]` (works while logged out; read-only data via RLS only for valid pending invites).
+- Acceptance flow:
+  - Validates token, email, and membership.
+  - Links `players.user_id`, inserts `space_members`, and marks invite accepted in a single transaction.
+  - Seeds `auth.users` display name from the player's name when missing, sets `sb-space-id`, then redirects to dashboard with `?invite_accepted=true` to trigger a one-time welcome.
+- Key schema updates:
+  - `players.user_id` (nullable FK → `auth.users.id`)
+  - `invites` (id, space_id, player_id UNIQUE, invited_by, invitee_email, token UNIQUE, status, created_at, expires_at)
+  - `profiles` view for safe user display names
+  - `space_members` UNIQUE `(user_id, space_id)`
+- Email delivery via Resend using a server-side React email template.
+- New files: `app/accept-invite/[token]/page.js`, `components/acceptInvite/AcceptInviteForm.jsx`, `components/emails/InvitationEmail.jsx`, `components/WelcomeDialog.jsx`.
 
 ### Design System
 - Brand green: `#2f7a2a`
@@ -124,6 +151,7 @@ npm run dev
 - Environment
   - Required: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SPACE_ID`.
   - Set `NEXT_PUBLIC_SPACE_ID` to your space's UUID (see `supabase/seed.sql` helper or your existing space).
+  - Optional: `RESEND_API_KEY` for sending invitation emails.
 - Key Files
   - Wizard: `app/(wizard)/tournaments/new/page.jsx` and server action `app/(wizard)/actions.js`.
   - Manage: `app/(with-sidebar)/t/[tournamentId]/manage/page.jsx` and actions `app/t/actions.js`.

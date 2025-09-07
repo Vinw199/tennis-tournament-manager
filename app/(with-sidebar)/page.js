@@ -10,6 +10,7 @@ import { Button as UIButton } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
 import { getActiveSpaceId, listSpaces } from "@/lib/supabase/spaces";
 import { redirect } from "next/navigation";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -51,6 +52,7 @@ export default async function Dashboard() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <WelcomeDialog />
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Event Dashboard</h1>
         <div className="flex items-center gap-2">
