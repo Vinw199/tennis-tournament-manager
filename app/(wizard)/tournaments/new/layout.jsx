@@ -1,3 +1,5 @@
+// path: app/(wizard)/tournaments/new/layout.jsx
+
 "use client";
 
 export default function WizardLayout({ children }) {
@@ -8,7 +10,7 @@ export default function WizardLayout({ children }) {
           <div className="text-sm text-foreground/70">Tournament Setup</div>
           <div className="flex items-center gap-3">
             <button
-              className="inline-flex items-center gap-2 rounded-md bg-brand px-3 py-1.5 text-sm text-white shadow hover:opacity-95"
+              className="inline-flex items-center gap-2 rounded-md bg-brand px-3 py-1.5 text-sm text-white shadow hover:opacity-95 cursor-pointer"
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('wizard:exit'))
               }}

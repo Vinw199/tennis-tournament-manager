@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { clearWizardDraftInDbClient } from "../data/wizardDraft.client";
+import { clearWizardDraftInDbClient } from "../lib/wizard/draft.js";
 import { PlusCircle } from "lucide-react";
 import { Button } from "./ui/button";
 

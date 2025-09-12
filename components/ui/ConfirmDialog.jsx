@@ -22,8 +22,8 @@ export default function ConfirmDialog({
           {description && <p>{description}</p>}
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>
-          <Button onClick={onConfirm}>{confirmLabel}</Button>
+          <Button variant="secondary" className='cursor-pointer' onClick={onCancel}>{cancelLabel}</Button>
+          <Button className='cursor-pointer' onClick={onConfirm}>{confirmLabel}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,18 +1,30 @@
 "use client";
-
+// add comments for important components
 import React, { useEffect, useMemo, useState } from "react";
+
+// shadcn components
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../../../../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../../components/ui/table";
 import { Button } from "../../../../../components/ui/button";
 import { Skeleton } from "../../../../../components/ui/skeleton";
+
+// supabase client
+import { createClient } from "@/utils/supabase/client";
+
+// local components
 import ScoreModal from "../../../../../components/score/ScoreModal";
 import ConfirmDialog from "../../../../../components/ui/ConfirmDialog";
+import Bracket from "../../../../../components/bracket/Bracket";
+
+// local actions
+import { completeTournamentAction, createFinalAction, createSemisAction } from "../../../../t/actions";
+
+// local utils
 import { computeStandings } from "../../../../../domain/tournament/standings";
 import { createSemisFinalBracket } from "../../../../../domain/tournament/bracket";
-import Bracket from "../../../../../components/bracket/Bracket";
-import { createClient } from "@/utils/supabase/client";
-import { completeTournamentAction, createFinalAction, createSemisAction } from "../../../../t/actions";
+
+// supabase utils
 import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default function ManageTournament({ params }) {

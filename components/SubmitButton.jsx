@@ -9,13 +9,16 @@ import { Loader2 } from 'lucide-react';
 
 
 // update later to use cursor-pointer classname instead of the props
-export function SubmitButton({ children, disabled, pendingText = 'Submitting...', ...props }) {
-    const { pending } = useFormStatus();
+export function SubmitButton({ children, disabled, pendingText = 'Submitting...', isPending = false, ...props }) {
+    const { pending: formPending } = useFormStatus();
+
+    const pending = formPending || isPending;
 
     return (
         <Button
             type="submit"
             disabled={pending || disabled}
+            className='cursor-pointer'
             {...props}
         >
             {pending ? (
