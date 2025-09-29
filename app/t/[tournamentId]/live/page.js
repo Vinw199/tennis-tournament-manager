@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader } from "../../../../components/ui/card";
+// import { Card, CardContent, CardHeader } from "../../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../components/ui/table";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { computeStandings } from "../../../../domain/tournament/standings";
