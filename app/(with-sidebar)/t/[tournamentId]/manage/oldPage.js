@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../../../../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../../components/ui/table";
-import { Button } from "../../../../../components/ui/button";
+import { Button } from "../../../../../components/ui/Button";
 import { Skeleton } from "../../../../../components/ui/skeleton";
 
 // supabase client

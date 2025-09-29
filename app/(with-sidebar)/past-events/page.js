@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../../components/ui/Button";
 import { getActiveSpaceId } from "@/lib/supabase/spaces";
 
 export default async function PastEvents() {

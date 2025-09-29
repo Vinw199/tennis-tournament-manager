@@ -4,7 +4,7 @@ import { Input } from "../ui/input"
 import { useActionState } from "react"
 import { createSpace } from "@/lib/supabase/spaces"
 import { useFormStatus } from "react-dom"
-import { Button } from "../ui/button"
+import { Button } from "../ui/Button"
 import { Loader2 } from "lucide-react"
 
 const SettingsForm = () => {

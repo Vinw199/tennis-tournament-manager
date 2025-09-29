@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/Button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";

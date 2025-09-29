@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import StartNewTournamentButton from "../../components/StartNewTournamentButton";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
-import { Button as UIButton } from "../../components/ui/button";
+import { Button as UIButton } from "../../components/ui/Button";
 import { FileText, Trophy, Users, History, Settings, ChevronRight } from "lucide-react";
 import { getActiveSpaceId, listSpaces } from "@/lib/supabase/spaces";
 import { redirect } from "next/navigation";

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { clearWizardDraftInDbClient } from "../lib/wizard/draft.js";
 import { PlusCircle } from "lucide-react";
-// import { Button } from "./ui/button";
 import { Button } from "./ui/Button.jsx";
 
 export default function StartNewTournamentButton({ label = "Start New Tournament" }) {
