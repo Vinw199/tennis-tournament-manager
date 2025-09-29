@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "./button";
+import { Button } from "./Button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 
 export default function ConfirmDialog({
