@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/Input'
+import { Input } from '@/components/ui/input'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import SubmitButton from '@/components/auth/SubmitButton'
 import { useFormStatus } from 'react-dom'
