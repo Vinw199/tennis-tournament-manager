@@ -53,7 +53,7 @@ export default function Sidebar({ spaceName = "" }) {
 
         <div className="absolute bottom-5 left-5 right-5">
           <form action={signout}>
-            <button className="w-full rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40">
+            <button className="w-full rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer">
               <span className="inline-flex items-center gap-2">
                 <LogOut className="h-4 w-4" aria-hidden />
                 <span>Sign out</span>

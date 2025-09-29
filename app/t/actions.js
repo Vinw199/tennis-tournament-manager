@@ -2,63 +2,112 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { computeStandings } from "../../domain/tournament/standings";
+import { revalidatePath } from "next/cache";
 
-export async function createSemisAction({ tournamentId }) {
+// export async function createSemisAction({ tournamentId }) {
+//   const supabase = await createClient();
+//   // Load entries and group matches
+//   const [{ data: entries, error: e1 }, { data: matches, error: e2 }] = await Promise.all([
+//     supabase.from("entries").select("id,name").eq("tournament_id", tournamentId),
+//     supabase
+//       .from("matches")
+//       .select("id, round, entry1_id, entry2_id, entry1_score, entry2_score, status")
+//       .eq("tournament_id", tournamentId),
+//   ]);
+//   if (e1 || e2) return { error: e1?.message || e2?.message };
+//   const entryById = new Map(entries.map((e) => [e.id, e]));
+
+//   const groupLabels = Array.from(new Set(matches.map((m) => m.round).filter((r) => r?.startsWith("Group "))));
+//   if (groupLabels.length < 2) return { error: "Need at least two groups" };
+
+//   // Build match objects for standings computation per group
+//   const standingsByGroup = groupLabels.map((label) => {
+//     const groupMatches = matches
+//       .filter((m) => m.round === label)
+//       .map((m) => ({
+//         entry1: entryById.get(m.entry1_id),
+//         entry2: entryById.get(m.entry2_id),
+//         entry1_score: m.entry1_score,
+//         entry2_score: m.entry2_score,
+//         status: m.status,
+//       }));
+//     return computeStandings(groupMatches);
+//   });
+
+//   if (!standingsByGroup.every((s) => s.length >= 2)) {
+//     return { error: "Not enough completed matches to determine qualifiers" };
+//   }
+
+//   const a = standingsByGroup[0];
+//   const b = standingsByGroup[1];
+//   const a1 = a.find((s) => s.rank === 1)?.entry?.id;
+//   const a2 = a.find((s) => s.rank === 2)?.entry?.id;
+//   const b1 = b.find((s) => s.rank === 1)?.entry?.id;
+//   const b2 = b.find((s) => s.rank === 2)?.entry?.id;
+//   if (!a1 || !a2 || !b1 || !b2) return { error: "Qualifiers not ready" };
+
+//   // Check if semis already exist
+//   const { data: existingSemis } = await supabase
+//     .from("matches")
+//     .select("id")
+//     .eq("tournament_id", tournamentId)
+//     .eq("round", "Semi-Finals");
+//   if ((existingSemis?.length || 0) >= 2) return { ok: true };
+
+//   const { error } = await supabase.from("matches").insert([
+//     { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: a1, entry2_id: b2, status: "pending" },
+//     { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: b1, entry2_id: a2, status: "pending" },
+//   ]);
+//   if (error) return { error: error.message };
+//   return { ok: true };
+// }
+
+export async function createKnockoutStageAction({ tournamentId }) {
   const supabase = await createClient();
-  // Load entries and group matches
-  const [{ data: entries, error: e1 }, { data: matches, error: e2 }] = await Promise.all([
-    supabase.from("entries").select("id,name").eq("tournament_id", tournamentId),
-    supabase
-      .from("matches")
-      .select("id, round, entry1_id, entry2_id, entry1_score, entry2_score, status")
-      .eq("tournament_id", tournamentId),
-  ]);
-  if (e1 || e2) return { error: e1?.message || e2?.message };
-  const entryById = new Map(entries.map((e) => [e.id, e]));
 
-  const groupLabels = Array.from(new Set(matches.map((m) => m.round).filter((r) => r?.startsWith("Group "))));
-  if (groupLabels.length < 2) return { error: "Need at least two groups" };
+  try {
+    // 1. Fetch all necessary data
+    const [{ data: entries }, { data: matches }] = await Promise.all([
+      supabase.from("entries").select("id, name").eq("tournament_id", tournamentId),
+      supabase.from("matches").select("*").eq("tournament_id", tournamentId),
+    ]);
 
-  // Build match objects for standings computation per group
-  const standingsByGroup = groupLabels.map((label) => {
-    const groupMatches = matches
-      .filter((m) => m.round === label)
-      .map((m) => ({
-        entry1: entryById.get(m.entry1_id),
-        entry2: entryById.get(m.entry2_id),
-        entry1_score: m.entry1_score,
-        entry2_score: m.entry2_score,
-        status: m.status,
-      }));
-    return computeStandings(groupMatches);
-  });
+    const entryById = new Map(entries.map(e => [e.id, e]));
 
-  if (!standingsByGroup.every((s) => s.length >= 2)) {
-    return { error: "Not enough completed matches to determine qualifiers" };
+    // 2. Hydrate matches and compute standings to find qualifiers
+    const hydratedMatches = matches.map(m => ({
+      ...m,
+      entry1: entryById.get(m.entry1_id),
+      entry2: entryById.get(m.entry2_id),
+    }));
+
+    const standingsA = computeStandings(hydratedMatches.filter(m => m.round === "Group A"));
+    const standingsB = computeStandings(hydratedMatches.filter(m => m.round === "Group B"));
+
+    const a1 = standingsA.find(s => s.rank === 1)?.entry?.id;
+    const a2 = standingsA.find(s => s.rank === 2)?.entry?.id;
+    const b1 = standingsB.find(s => s.rank === 1)?.entry?.id;
+    const b2 = standingsB.find(s => s.rank === 2)?.entry?.id;
+
+    if (!a1 || !a2 || !b1 || !b2) {
+      throw new Error("Could not determine all qualifiers from group standings.");
+    }
+
+    // Prepare the 2 semi-finals matches
+    const knockoutMatches = [
+      { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: a1, entry2_id: b2, status: "pending" },
+      { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: b1, entry2_id: a2, status: "pending" },
+    ];
+    // Insert the 2 semi-finals matches into the database
+    const { error } = await supabase.from("matches").insert(knockoutMatches);
+    if (error) throw error;
+
+  } catch (error) {
+    return { error: error.message };
   }
 
-  const a = standingsByGroup[0];
-  const b = standingsByGroup[1];
-  const a1 = a.find((s) => s.rank === 1)?.entry?.id;
-  const a2 = a.find((s) => s.rank === 2)?.entry?.id;
-  const b1 = b.find((s) => s.rank === 1)?.entry?.id;
-  const b2 = b.find((s) => s.rank === 2)?.entry?.id;
-  if (!a1 || !a2 || !b1 || !b2) return { error: "Qualifiers not ready" };
-
-  // Check if semis already exist
-  const { data: existingSemis } = await supabase
-    .from("matches")
-    .select("id")
-    .eq("tournament_id", tournamentId)
-    .eq("round", "Semi-Finals");
-  if ((existingSemis?.length || 0) >= 2) return { ok: true };
-
-  const { error } = await supabase.from("matches").insert([
-    { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: a1, entry2_id: b2, status: "pending" },
-    { tournament_id: tournamentId, round: "Semi-Finals", entry1_id: b1, entry2_id: a2, status: "pending" },
-  ]);
-  if (error) return { error: error.message };
-  return { ok: true };
+  revalidatePath(`/t/${tournamentId}/manage`);
+  return { success: true };
 }
 
 export async function createFinalAction({ tournamentId }) {

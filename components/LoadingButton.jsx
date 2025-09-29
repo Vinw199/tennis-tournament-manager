@@ -1,28 +1,30 @@
-// reusable submit button component that can be used in forms
-// it will show a loading spinner when the form is submitting
-// isPending is used when the form is not a form and is being used as a button
-
-'use client';
+"use client";
 
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-
-// update later to use cursor-pointer classname instead of the props
-export function SubmitButton({
-    children, disabled, pendingText = 'Submitting...', isPending = false, className, ...props
+export function LoadingButton({
+    children,
+    disabled,
+    pendingText = 'Submitting...',
+    isPending = false,
+    variant = "default", // Default to primary button style
+    size,
+    className,
+    ...props
 }) {
     const { pending: formPending } = useFormStatus();
-
     const pending = formPending || isPending;
 
     return (
         <Button
+            variant={variant}
+            size={size}
             type="submit"
             disabled={pending || disabled}
-            className={cn('cursor-pointer', className)}
+            className={cn(className)}
             {...props}
         >
             {pending ? (
