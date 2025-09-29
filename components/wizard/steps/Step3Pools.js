@@ -273,7 +273,7 @@ function EntriesTabContent({ generatedEntries, regeneratePairs, isBalanced }) {
     <div className="mt-4">
       {/* CHANGE 2: Added tab description */}
       <p className="mb-4 text-sm text-muted-foreground">
-        Review the generated doubles pairs. You can regenerate new pairs if you're not satisfied.
+        Review the generated doubles pairs. You can regenerate new pairs if you&apos;re not satisfied.
       </p>
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">

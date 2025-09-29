@@ -86,11 +86,11 @@ export default async function AcceptInvitePage({ params }) {
             <PageLayout>
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Welcome to {invite.space.name}!</CardTitle>
-                    <CardDescription>You've been personally invited by {invite.inviter.display_name}.</CardDescription>
+                    <CardDescription>You&apos;ve been personally invited by {invite.inviter.display_name}.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="text-center text-sm text-muted-foreground">
-                        To accept the invitation for <span className="font-medium text-foreground">"{invite.player.name}"</span>, please log in or create an account.
+                        To accept the invitation for <span className="font-medium text-foreground">&quot;{invite.player.name}&quot;</span>, please log in or create an account.
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-3">
@@ -110,15 +110,15 @@ export default async function AcceptInvitePage({ params }) {
         <PageLayout>
             <CardHeader className="text-center">
                 <CardTitle className="text-2xl">
-                    You're Invited!
+                    You&apos;re Invited!
                 </CardTitle>
                 <CardDescription>
-                    You've been invited to join {invite.space.name}.
+                    You&apos;ve been invited to join {invite.space.name}.
                 </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
                 <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">{invite.inviter.display_name}</span> has invited you to claim the player profile for <span className="font-semibold text-foreground">"{invite.player.name}"</span>.
+                    <span className="font-semibold text-foreground">{invite.inviter.display_name}</span> has invited you to claim the player profile for <span className="font-semibold text-foreground">&quot;{invite.player.name}&quot;</span>.
                 </p>
             </CardContent>
             <CardFooter>
