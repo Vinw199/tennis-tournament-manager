@@ -6,7 +6,7 @@ import { useState, useEffect, useActionState, useCallback } from 'react';
 import { useFormStatus } from 'react-dom';
 import { deletePlayer, resendInvite, revokeInvite } from '@/app/(with-sidebar)/roster/actions';
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from 'sonner';

@@ -72,7 +72,7 @@
 
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, CalendarDays, Trophy, ListChecks, Swords } from "lucide-react";
 import { SubmitButton } from "@/components/SubmitButton";

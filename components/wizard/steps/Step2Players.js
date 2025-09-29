@@ -85,7 +85,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // 1. Imported CardTitle and CardDescription
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

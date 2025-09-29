@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Edit, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 

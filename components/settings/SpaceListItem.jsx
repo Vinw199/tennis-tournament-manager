@@ -4,7 +4,7 @@ import { useState, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { setActiveSpace, deleteSpace } from '@/lib/supabase/spaces';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { RenameSpaceModal } from './RenameSpaceModal'; // Make sure you've renamed the file
 import { MoreHorizontal, Loader2 } from 'lucide-react';

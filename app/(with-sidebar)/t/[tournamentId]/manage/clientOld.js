@@ -5,7 +5,7 @@ import { useTournamentManager } from "@/hooks/useTournamentManager";
 
 import { Card, CardContent, CardHeader } from "../../../../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ScoreModal from "@/components/score/ScoreModal";
 import ConfirmDialog from "../../../../../components/ui/ConfirmDialog";

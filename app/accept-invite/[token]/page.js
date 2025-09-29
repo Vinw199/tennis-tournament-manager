@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { AcceptInviteForm } from '@/components/acceptInvite/AcceptInviteForm';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { XCircle } from "lucide-react"
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 
 // shared layout component

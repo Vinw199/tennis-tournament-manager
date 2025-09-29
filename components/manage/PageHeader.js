@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 // use submit button and loading state
 import { SubmitButton } from "@/components/SubmitButton";
 import { useState } from "react";

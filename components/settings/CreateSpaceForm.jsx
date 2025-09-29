@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { createSpace } from '@/lib/supabase/spaces';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Loader2 } from 'lucide-react';
 
 // This is the same as your old SettingsForm.jsx, just renamed for clarity.

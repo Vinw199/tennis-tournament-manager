@@ -4,7 +4,7 @@ import { useActionState, useEffect } from 'react';
 import { handlePlayerForm } from '@/app/(with-sidebar)/roster/actions';
 import { toast } from 'sonner';
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 
